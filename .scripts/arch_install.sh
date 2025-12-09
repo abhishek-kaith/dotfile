@@ -182,7 +182,7 @@ install_base_system() {
         sbctl
         openssh
     )
-
+    select_microcode
     if [[ -n "$microcode_pkg" ]]; then
         packages+=("$microcode_pkg")
     fi
