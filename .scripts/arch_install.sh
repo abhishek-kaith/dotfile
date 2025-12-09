@@ -132,8 +132,8 @@ mount_subvolumes() {
     mount -o ssd,noatime,compress=zstd:1,space_cache=v2,autodefrag,subvol=@var_log,nodev,nosuid,noexec "$cryptdev" /mnt/var/log
     mount -o ssd,noatime,compress=zstd:1,space_cache=v2,autodefrag,subvol=@var_cache,nodev,nosuid,noexec "$cryptdev" /mnt/var/cache
 
-    mkdir -p /mnt/efi
-    mount "$boot_partition" /mnt/efi || error_exit "Failed to mount EFI partition $boot_partition to /mnt/efi"
+    mkdir -p /mnt/boot
+    mount "$boot_partition" /mnt/boot || error_exit "Failed to mount EFI partition $boot_partition to /mnt/boot"
     info "All subvolumes and EFI partition mounted successfully."
 }
 
@@ -243,12 +243,7 @@ EOF
         error_exit "Failed to obtain UUID of $main_partition"
     fi
     mkdir -p /mnt/etc
-    for preset in /mnt/etc/mkinitcpio.d/*.preset; do
-        info "Updating preset $preset for UKI"
-        sed -i -E 's|^default_uki=.*|default_uki="/efi/EFI/Linux/arch-linux.efi"|' "$preset" || true
-        sed -i -E 's|^fallback_uki=.*|fallback_uki="/efi/EFI/Linux/arch-linux-fallback.efi"|' "$preset" || true
-        sed -i -E 's/^(default_image|fallback_image)=.*/#\1=/' "$preset"
-    done
+
     cat <<EOF > /mnt/etc/crypttab
 ${crypt_name} UUID=${luks_uuid} none luks,discard
 EOF
@@ -258,15 +253,14 @@ EOF
     echo "root=/dev/mapper/${crypt_name} rootfstype=btrfs rootflags=subvol=/@ rw" > /mnt/etc/kernel/cmdline
 
     # enable necessary services and finalize initramfs (chroot) 
-    arch-chroot /mnt /bin/bash -c "mkdir -p /efi/EFI/Linux"
     arch-chroot /mnt /bin/bash -c "mkinitcpio -P"
     arch-chroot /mnt /bin/bash -c "systemctl enable NetworkManager"
     arch-chroot /mnt /bin/bash -c "sbctl create-keys || true"
     arch-chroot /mnt /bin/bash -c "sbctl enroll-keys --microsoft || true"
 
     # Sign UKIs/EFI files if they exist (best-effort)
-    if compgen -G "/mnt/efi/EFI/Linux/*.efi" >/dev/null; then
-        for efi in /mnt/efi/EFI/Linux/*.efi; do
+    if compgen -G "/mnt/boot/EFI/Linux/*.efi" >/dev/null; then
+        for efi in /mnt/boot/EFI/Linux/*.efi; do
             [ -f "$efi" ] || continue
             info "Signing ${efi#/mnt}..."
             arch-chroot /mnt sbctl sign --save "${efi#/mnt}" || info "Signing failed for ${efi}"
@@ -276,33 +270,7 @@ EOF
 
 install_bootloader() {
     info "Setting up UEFI boot entries..."
-    local efi_disk efi_part_num
-    efi_disk=$(lsblk -npo PKNAME "$boot_partition" | head -1)
-    efi_part_num=$(lsblk -npo PARTN "$boot_partition" | head -1)
-    info "EFI disk: $efi_disk"
-    info "EFI partition number: $efi_part_num"
-
-    # detect installed kernels inside chroot
-    local kernels=()
-    if arch-chroot /mnt pacman -Q linux &>/dev/null; then kernels+=("linux"); fi
-    if arch-chroot /mnt pacman -Q linux-lts &>/dev/null; then kernels+=("linux-lts"); fi
-    if arch-chroot /mnt pacman -Q linux-zen &>/dev/null; then kernels+=("linux-zen"); fi
-    if arch-chroot /mnt pacman -Q linux-hardened &>/dev/null; then kernels+=("linux-hardened"); fi
-
-    if [[ ${#kernels[@]} -eq 0 ]]; then
-        info "No kernel package detected in chroot. Skipping efibootmgr entries (you can create them after first boot)."
-        return
-    fi
-
-    info "Detected kernels: ${kernels[*]}"
-    for kernel in "${kernels[@]}"; do
-        info "Creating UEFI boot entries for kernel: $kernel (best-effort)"
-        arch-chroot /mnt /bin/bash -c "efibootmgr --create --disk ${efi_disk} --part ${efi_part_num} --label 'ArchLinux-${kernel}-fallback' --loader 'EFI\\Linux\\arch-${kernel}-fallback.efi' --unicode" || info "Warning: efibootmgr fallback creation failed for ${kernel}"
-        arch-chroot /mnt /bin/bash -c "efibootmgr --create --disk ${efi_disk} --part ${efi_part_num} --label 'ArchLinux-${kernel}' --loader 'EFI\\Linux\\arch-${kernel}.efi' --unicode" || info "Warning: efibootmgr entry creation failed for ${kernel}"
-    done
-
-    info "Current efibootmgr output (chroot):"
-    arch-chroot /mnt efibootmgr || true
+    bootctl install
 }
 
 check_root
