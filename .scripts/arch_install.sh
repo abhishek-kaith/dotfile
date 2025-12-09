@@ -290,8 +290,8 @@ install_bootloader() {
     info "Detected kernels: ${kernels[*]}"
     for kernel in "${kernels[@]}"; do
         info "Creating UEFI boot entries for kernel: $kernel (best-effort)"
-        arch-chroot /mnt /bin/bash -c "efibootmgr --create --disk /dev/${efi_disk} --part ${efi_part_num} --label 'ArchLinux-${kernel}' --loader 'EFI\\Linux\\arch-${kernel}.efi' --unicode" || info "Warning: efibootmgr entry creation failed for ${kernel}"
-        arch-chroot /mnt /bin/bash -c "efibootmgr --create --disk /dev/${efi_disk} --part ${efi_part_num} --label 'ArchLinux-${kernel}-fallback' --loader 'EFI\\Linux\\arch-${kernel}-fallback.efi' --unicode" || info "Warning: efibootmgr fallback creation failed for ${kernel}"
+        arch-chroot /mnt /bin/bash -c "efibootmgr --create --disk ${efi_disk} --part ${efi_part_num} --label 'ArchLinux-${kernel}' --loader 'EFI\\Linux\\arch-${kernel}.efi' --unicode" || info "Warning: efibootmgr entry creation failed for ${kernel}"
+        arch-chroot /mnt /bin/bash -c "efibootmgr --create --disk ${efi_disk} --part ${efi_part_num} --label 'ArchLinux-${kernel}-fallback' --loader 'EFI\\Linux\\arch-${kernel}-fallback.efi' --unicode" || info "Warning: efibootmgr fallback creation failed for ${kernel}"
     done
 
     info "Current efibootmgr output (chroot):"
