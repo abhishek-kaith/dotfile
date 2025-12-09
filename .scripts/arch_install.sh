@@ -251,7 +251,8 @@ EOF
     mkdir -p /mnt/etc/kernel
     echo "root=/dev/mapper/${crypt_name} rootfstype=btrfs rootflags=subvol=/@ rw" > /mnt/etc/kernel/cmdline
 
-    # enable necessary services and finalize initramfs (chroot)
+    # enable necessary services and finalize initramfs (chroot) 
+    arch-chroot /mnt /bin/bash -c "mkdir -p /boot/EFI/Linux"
     arch-chroot /mnt /bin/bash -c "mkinitcpio -P"
     arch-chroot /mnt /bin/bash -c "systemctl enable NetworkManager"
     arch-chroot /mnt /bin/bash -c "sbctl create-keys || true"
@@ -290,8 +291,8 @@ install_bootloader() {
     info "Detected kernels: ${kernels[*]}"
     for kernel in "${kernels[@]}"; do
         info "Creating UEFI boot entries for kernel: $kernel (best-effort)"
-        arch-chroot /mnt /bin/bash -c "efibootmgr --create --disk ${efi_disk} --part ${efi_part_num} --label 'ArchLinux-${kernel}' --loader 'EFI\\Linux\\arch-${kernel}.efi' --unicode" || info "Warning: efibootmgr entry creation failed for ${kernel}"
         arch-chroot /mnt /bin/bash -c "efibootmgr --create --disk ${efi_disk} --part ${efi_part_num} --label 'ArchLinux-${kernel}-fallback' --loader 'EFI\\Linux\\arch-${kernel}-fallback.efi' --unicode" || info "Warning: efibootmgr fallback creation failed for ${kernel}"
+        arch-chroot /mnt /bin/bash -c "efibootmgr --create --disk ${efi_disk} --part ${efi_part_num} --label 'ArchLinux-${kernel}' --loader 'EFI\\Linux\\arch-${kernel}.efi' --unicode" || info "Warning: efibootmgr entry creation failed for ${kernel}"
     done
 
     info "Current efibootmgr output (chroot):"
