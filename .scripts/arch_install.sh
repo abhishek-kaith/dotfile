@@ -241,6 +241,9 @@ install_bootloader() {
     fi
 
     for kernel in "${kernels[@]}"; do
+        arch-chroot /mnt sbctl sign --save /efi/EFI/Linux/arch-${kernel}.efi
+        arch-chroot /mnt sbctl sign --save /efi/EFI/Linux/arch-${kernel}-fallback.efi
+
         arch-chroot /mnt efibootmgr --create --disk ${efi_disk} --part ${efi_part_num} \
             --label "ArchLinux-${kernel}" --loader "EFI\\Linux\\arch-${kernel}.efi" --unicode
         arch-chroot /mnt efibootmgr --create --disk ${efi_disk} --part ${efi_part_num} \
