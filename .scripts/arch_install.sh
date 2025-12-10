@@ -22,22 +22,29 @@ error_exit() {
 info() { echo "[INFO] $1"; }
 
 comment_if_exact() {
-    local file="$1"; local pattern="$2"
-    if grep -Fxq "$pattern" "$file"; then
-        sed -i "s|^$pattern|#$pattern|" "$file"
-    fi
+    local file="$1"
+    local pattern="$2"
+    # Escape any sed special characters in pattern
+    local escaped_pattern
+    escaped_pattern=$(printf '%s\n' "$pattern" | sed 's/[&/\]/\\&/g')
+    # Comment the line if it exactly matches (ignoring leading spaces)
+    sed -i "s/^[[:space:]]*$escaped_pattern/# $pattern/" "$file"
 }
+
 uncomment_if_exact() {
-    local file="$1"; local pattern="$2"
-    if grep -Eq "^#[ ]*$pattern" "$file"; then
-        sed -i "s|^#[ ]*$pattern|$pattern|" "$file"
-    fi
+    local file="$1"
+    local pattern="$2"
+    local escaped_pattern
+    escaped_pattern=$(printf '%s\n' "$pattern" | sed 's/[&/\]/\\&/g')
+    # Uncomment the line if it starts with optional # and spaces
+    sed -i "s/^[[:space:]]*#*[[:space:]]*$escaped_pattern/$pattern/" "$file"
 }
+
 uncomment_if_commented_key() {
-    local file="$1"; local key="$2"
-    if grep -Eq "^#[ ]*${key}=" "$file"; then
-        sed -i "s|^#[ ]*${key}=|${key}=|" "$file"
-    fi
+    local file="$1"
+    local key="$2"
+    # Match commented key lines like "# key=" and uncomment them
+    sed -i "s/^[[:space:]]*#*[[:space:]]*\(${key}=\)/\1/" "$file"
 }
 
 check_root() { 
