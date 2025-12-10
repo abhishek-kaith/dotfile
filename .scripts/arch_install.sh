@@ -192,6 +192,9 @@ EOF
     echo "Set password for $user (in chroot)..."
     arch-chroot /mnt passwd "$user"
 
+    echo "Set password for Root (in chroot)..."
+    arch-chroot /mnt passwd
+
     cat <<EOF > /mnt/etc/hosts
 127.0.0.1   localhost
 ::1         localhost
