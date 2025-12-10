@@ -1,276 +1,226 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Arch Linux Automated Installer (Zen + UKI + LUKS2 + Btrfs)
+# Refrence: https://wiki.archlinux.org/title/User:Bai-Chiang/Arch_Linux_installation_with_unified_kernel_image_(UKI),_full_disk_encryption,_secure_boot,_btrfs_snapshots,_and_common_setups
+
 default_user="arch"
 default_hostname="archbox"
-boot_label="BOOT"
+boot_label="EFI"
 root_label="LINUX"
 crypt_name="cryptroot"
 
-error_exit() {
-    echo "ERROR: $1" >&2
-    exit 1
-}
-info() { echo "[INFO] $1"; }
+error_exit() { echo -e "\e[31m[ERROR] $1\e[0m" >&2; exit 1; }
+info() { echo -e "\e[34m[INFO] $1\e[0m"; }
 
-check_root() {
-    if (( EUID != 0 )); then
-        error_exit "This script must be run as root."
-    fi
+comment_if_exact() {
+    local file="$1"; local pattern="$2"
+    grep -Fxq "$pattern" "$file" && sed -i "s|^$pattern|#$pattern|" "$file"
 }
+uncomment_if_exact() {
+    local file="$1"; local pattern="$2"
+    grep -Eq "^#[ ]*$pattern" "$file" && sed -i "s|^#[ ]*$pattern|$pattern|" "$file"
+}
+uncomment_if_commented_key() {
+    local file="$1"; local key="$2"
+    grep -Eq "^#[ ]*${key}=" "$file" && sed -i "s|^#[ ]*${key}=|${key}=|" "$file"
+}
+
+check_root() { (( EUID != 0 )) && error_exit "Run as root!"; }
 
 check_uefi() {
-    info "Checking UEFI..."
-    if [[ ! -d /sys/firmware/efi ]]; then
-        error_exit "System not booted in UEFI mode."
-    fi
-    if [[ -f /sys/firmware/efi/fw_platform_size ]]; then
-        uefi_code=$(< /sys/firmware/efi/fw_platform_size)
-        info "UEFI detected: ${uefi_code}-bit"
-    else
-        info "UEFI detected."
-    fi
+    info "Checking UEFI boot mode..."
+    [[ -d /sys/firmware/efi ]] || error_exit "System not booted in UEFI mode."
+    uefi_code=$(< /sys/firmware/efi/fw_platform_size 2>/dev/null || echo "")
+    info "UEFI detected: ${uefi_code:-UEFI}-bit"
 }
 
 select_device() {
     info "Available disks:"
-    lsblk -dno NAME,SIZE,MODEL || error_exit "Failed to list disks."
-    read -rp "Enter the device to partition (e.g., sda or nvme0n1): " dev
-    # accept full path or basename
-    if [[ $dev == /dev/* ]]; then
-        device="$dev"
-    else
-        device="/dev/$dev"
-    fi
+    lsblk -dno NAME,SIZE,MODEL
+    read -rp "Enter device to partition (e.g., sda or nvme0n1): " dev
+    [[ $dev == /dev/* ]] && device="$dev" || device="/dev/$dev"
     [[ -b $device ]] || error_exit "Invalid device: $device"
 
     echo "Selected device: $device"
     read -rp "This will ERASE ALL DATA on $device. Continue? (yes/no): " confirm
-    confirm=$(echo "$confirm" | tr '[:upper:]' '[:lower:]' | tr -d ' ')
-    [[ "$confirm" == "yes" ]] || error_exit "Aborted by user."
+    [[ "${confirm,,}" == "yes" ]] || error_exit "Aborted by user."
 }
 
 get_part_suffix() {
-    local base
-    base=$(basename "$device")
-    if [[ $base =~ ^nvme ]] || [[ $base =~ ^mmcblk ]]; then
-        echo "p"
-    else
-        echo ""
-    fi
+    local base; base=$(basename "$device")
+    [[ $base =~ ^nvme ]] || [[ $base =~ ^mmcblk ]] && echo "p" || echo ""
 }
 
 create_partitions() {
-    read -rp "Enter size for main partition (optional, e.g., 50G, press Enter for all remaining): " mainsize
+    read -rp "Enter size for main partition (e.g., 50G, Enter=all remaining): " mainsize
     mainsize="${mainsize:-}"
 
-    info "Wiping existing partition table..."
-    sgdisk -Z "$device" || error_exit "Failed to wipe partition table on $device"
+    info "Wiping partition table..."
+    sgdisk -Z "$device"
 
     info "Creating 1GiB EFI partition..."
-    sgdisk -n 1:0:+1G -t 1:ef00 -c 1:"$boot_label" "$device" || error_exit "Failed to create EFI partition"
+    sgdisk -n 1:0:+1G -t 1:ef00 -c 1:"$boot_label" "$device"
 
     if [[ -n "$mainsize" ]]; then
-        info "Creating main partition of size $mainsize..."
-        sgdisk -n 2:0:+${mainsize} -t 2:8300 -c 2:"$root_label" "$device" || error_exit "Failed to create main partition"
+        info "Creating main partition ($mainsize)..."
+        sgdisk -n 2:0:+${mainsize} -t 2:8300 -c 2:"$root_label" "$device"
     else
-        info "Creating main partition using remaining space..."
-        sgdisk -n 2:0:0 -t 2:8300 -c 2:"$root_label" "$device" || error_exit "Failed to create main partition"
+        info "Creating main partition with remaining space..."
+        sgdisk -n 2:0:0 -t 2:8300 -c 2:"$root_label" "$device"
     fi
 
-    local suffix
-    suffix=$(get_part_suffix)
+    local suffix; suffix=$(get_part_suffix)
     boot_partition="${device}${suffix}1"
     main_partition="${device}${suffix}2"
 
-    info "Partitions created: EFI -> $boot_partition  ROOT -> $main_partition"
+    info "Partitions created: EFI -> $boot_partition, ROOT -> $main_partition"
 }
 
 setup_encryption() {
-    info "Setting up LUKS2 encryption on $main_partition..."
-
-    if [[ -b "/dev/mapper/$crypt_name" ]]; then
-        info "Closing existing LUKS mapping..."
-        cryptsetup close "$crypt_name" || true
-    fi
-
-    # best-effort sector size detection
-    local sector_size
+    info "Setting up LUKS2 encryption..."
+    [[ -b "/dev/mapper/$crypt_name" ]] && cryptsetup close "$crypt_name" || true
     sector_size=$(lsblk -no PHY-SEC "$main_partition" 2>/dev/null || echo 512)
-
-    # prompt for passphrase interactively (cryptsetup will prompt)
-    cryptsetup --type luks2 --verify-passphrase --sector-size "$sector_size" luksFormat "$main_partition" || error_exit "luksFormat failed"
-    cryptsetup open "$main_partition" "$crypt_name" || error_exit "Failed to open LUKS container"
+    cryptsetup --type luks2 --verify-passphrase --sector-size "$sector_size" luksFormat "$main_partition"
+    cryptsetup open "$main_partition" "$crypt_name"
     info "LUKS container opened at /dev/mapper/$crypt_name"
 }
 
 format_partitions() {
     info "Formatting partitions..."
-    mkfs.fat -F32 "$boot_partition" || error_exit "Failed to format EFI partition $boot_partition"
-    mkfs.btrfs -f "/dev/mapper/$crypt_name" || error_exit "Failed to format root partition as btrfs"
+    mkfs.fat -F32 "$boot_partition"
+    mkfs.btrfs -f "/dev/mapper/$crypt_name"
 }
 
 create_subvolumes() {
     info "Creating Btrfs subvolumes..."
-    mount "/dev/mapper/$crypt_name" /mnt || error_exit "Failed to mount root partition on /mnt"
+    mount "/dev/mapper/$crypt_name" /mnt
     for subvol in @ @home @snapshots @var_log @var_cache; do
-        btrfs subvolume create "/mnt/$subvol" || error_exit "Failed to create subvolume $subvol"
+        btrfs subvolume create "/mnt/$subvol"
     done
-    mkdir -p /mnt/{home,.snapshots,var/log,var/cache,boot}
-    umount /mnt || error_exit "Failed to unmount /mnt after subvolume creation"
-    info "Subvolumes created and /mnt unmounted"
+    mkdir -p /mnt/{home,.snapshots,var/log,var/cache}
+    chmod 700 /mnt/.snapshots
+    umount /mnt
 }
 
 mount_subvolumes() {
-    info "Mounting subvolumes with recommended options..."
-    local cryptdev="/dev/mapper/$crypt_name"
-
-    mount -o ssd,noatime,compress=zstd:1,space_cache=v2,autodefrag,subvol=@ "$cryptdev" /mnt
+    info "Mounting subvolumes..."
+    local opts="ssd,noatime,compress=zstd:1,space_cache=v2,autodefrag"
+    mount -o $opts,subvol=@ /dev/mapper/$crypt_name /mnt
     mkdir -p /mnt/{home,.snapshots,var/log,var/cache}
-    mount -o ssd,noatime,compress=zstd:1,space_cache=v2,autodefrag,subvol=@home,nodev "$cryptdev" /mnt/home
-    mount -o ssd,noatime,compress=zstd:1,space_cache=v2,autodefrag,subvol=@snapshots,nodev,nosuid,noexec "$cryptdev" /mnt/.snapshots
-    mount -o ssd,noatime,compress=zstd:1,space_cache=v2,autodefrag,subvol=@var_log,nodev,nosuid,noexec "$cryptdev" /mnt/var/log
-    mount -o ssd,noatime,compress=zstd:1,space_cache=v2,autodefrag,subvol=@var_cache,nodev,nosuid,noexec "$cryptdev" /mnt/var/cache
+    mount -o $opts,subvol=@home,nodev /dev/mapper/$crypt_name /mnt/home
+    mount -o $opts,subvol=@snapshots,nodev,nosuid,noexec /dev/mapper/$crypt_name /mnt/.snapshots
+    mount -o $opts,subvol=@var_log,nodev,nosuid,noexec /dev/mapper/$crypt_name /mnt/var/log
+    mount -o $opts,subvol=@var_cache,nodev,nosuid,noexec /dev/mapper/$crypt_name /mnt/var/cache
 
-    mkdir -p /mnt/boot
-    mount "$boot_partition" /mnt/boot || error_exit "Failed to mount EFI partition $boot_partition to /mnt/boot"
-    info "All subvolumes and EFI partition mounted successfully."
+    mkdir -p /mnt/efi
+    mount "$boot_partition" /mnt/efi || error_exit "Failed to mount EFI"
 }
-
 
 select_microcode() {
     info "Select CPU microcode:"
-    echo "1) AMD"
-    echo "2) Intel"
-    echo "3) None"
-    read -rp "Enter choice [1-3]: " mc
-
+    echo "1) AMD  2) Intel  3) None"
+    read -rp "Choice [1-3]: " mc
     case "$mc" in
-        1)
-            microcode_pkg="amd-ucode"
-            ;;
-        2)
-            microcode_pkg="intel-ucode"
-            ;;
-        3)
-            microcode_pkg=""
-            ;;
-        *)
-            error_exit "Invalid microcode selection."
-            ;;
+        1) microcode_pkg="amd-ucode" ;;
+        2) microcode_pkg="intel-ucode" ;;
+        3) microcode_pkg="" ;;
+        *) error_exit "Invalid choice." ;;
     esac
-
-    if [[ -n "$microcode_pkg" ]]; then
-        info "Selected microcode: $microcode_pkg"
-    else
-        info "No microcode will be installed."
-    fi
+    info "Selected microcode: ${microcode_pkg:-None}"
 }
-
 
 install_base_system() {
     info "Installing base system..."
-    local packages=(
-        base base-devel
-        linux-zen linux-zen-headers
-        linux-firmware
-        btrfs-progs
-        efibootmgr
-        networkmanager
-        terminus-font
-        neovim
-        sbctl
-        openssh
-    )
+    local packages=(base base-devel linux-zen linux-zen-headers linux-firmware btrfs-progs efibootmgr networkmanager terminus-font neovim sbctl openssh)
     select_microcode
-    if [[ -n "$microcode_pkg" ]]; then
-        packages+=("$microcode_pkg")
-    fi
-
+    [[ -n "$microcode_pkg" ]] && packages+=("$microcode_pkg")
     pacstrap -K /mnt "${packages[@]}"
 }
 
 generate_fstab() {
-    info "Generating /etc/fstab..."
+    info "Generating fstab..."
     genfstab -U /mnt >> /mnt/etc/fstab
-    # remove subvolid tokens if present (optional)
     sed -i 's/subvolid=[0-9]*,//g' /mnt/etc/fstab || true
 }
 
 configure_system() {
     info "Configuring system basics..."
-
-    read -rp "Enter hostname (default: $default_hostname): " input_hostname
+    read -rp "Hostname [${default_hostname}]: " input_hostname
     hostname="${input_hostname:-$default_hostname}"
     echo "$hostname" > /mnt/etc/hostname
-    info "Hostname set to: $hostname"
 
-    info "Creating vconsole config..."
     cat <<EOF > /mnt/etc/vconsole.conf
 KEYMAP=us
 FONT=ter-128b
 EOF
 
-    info "Setting locale and timezone etc..."
-    arch-chroot /mnt /bin/bash -c "sed -i -e '/^#en_US.UTF-8 UTF-8/s/^#//' /etc/locale.gen && locale-gen"
+    arch-chroot /mnt sed -i -e '/^#en_US.UTF-8 UTF-8/s/^#//' /etc/locale.gen
+    arch-chroot /mnt locale-gen
     echo "LANG=en_US.UTF-8" > /mnt/etc/locale.conf
-    arch-chroot /mnt /bin/bash -c "ln -sf /usr/share/zoneinfo/UTC /etc/localtime && hwclock --systohc"
+    arch-chroot /mnt ln -sf /usr/share/zoneinfo/UTC /etc/localtime
+    arch-chroot /mnt hwclock --systohc
 
-    read -rp "Enter username (default: $default_user): " input_user
+    read -rp "Username [${default_user}]: " input_user
     user="${input_user:-$default_user}"
-
-    info "Creating user '$user' and enabling sudo..."
     arch-chroot /mnt useradd -G wheel -m "$user"
     echo "Set password for $user (in chroot)..."
     arch-chroot /mnt passwd "$user"
 
-    info "Setting /etc/hosts..."
     cat <<EOF > /mnt/etc/hosts
 127.0.0.1   localhost
 ::1         localhost
 127.0.1.1   ${hostname}.localdomain   ${hostname}
 EOF
 
-    # Configure mkinitcpio hooks for systemd + encryption + sd-vconsole
-    info "Configuring mkinitcpio HOOKS for systemd + sd-encrypt..."
-    if [[ -f /mnt/etc/mkinitcpio.conf ]]; then
-        sed -i 's/^HOOKS=.*/HOOKS=(base systemd autodetect keyboard keymap sd-vconsole block sd-encrypt filesystems fsck)/' /mnt/etc/mkinitcpio.conf
-    fi
+    sed -i 's/^HOOKS=.*/HOOKS=(base systemd autodetect keyboard keymap sd-vconsole block sd-encrypt filesystems fsck)/' /mnt/etc/mkinitcpio.conf
 
-    # Create /etc/crypttab for initramfs (use UUID of partition)
-    luks_uuid=$(blkid -s UUID -o value "$main_partition" || true)
-    if [[ -z "$luks_uuid" ]]; then
-        error_exit "Failed to obtain UUID of $main_partition"
-    fi
-    mkdir -p /mnt/etc
+    luks_uuid=$(blkid -s UUID -o value "$main_partition")
+    echo "${crypt_name} UUID=${luks_uuid} - password-echo=no,x-systemd.device-timeout=0,timeout=0,no-read-workqueue,no-write-workqueue,discard" > /mnt/etc/crypttab.initramfs
 
-    cat <<EOF > /mnt/etc/crypttab
-${crypt_name} UUID=${luks_uuid} none luks,discard
-EOF
+    echo "root=/dev/mapper/${crypt_name} rootfstype=btrfs rootflags=subvol=/@ rw modprobe.blacklist=pcspkr" > /mnt/etc/kernel/cmdline
+    echo "root=/dev/mapper/${crypt_name} rootfstype=btrfs rootflags=subvol=/@ rw modprobe.blacklist=pcspkr" > /mnt/etc/kernel/cmdline_fallback
 
-    # create kernel cmdline file for UKI (if using UKI)
-    mkdir -p /mnt/etc/kernel
-    echo "root=/dev/mapper/${crypt_name} rootfstype=btrfs rootflags=subvol=/@ rw" > /mnt/etc/kernel/cmdline
-
-    # enable necessary services and finalize initramfs (chroot) 
-    arch-chroot /mnt /bin/bash -c "mkinitcpio -P"
-    arch-chroot /mnt /bin/bash -c "systemctl enable NetworkManager"
-    arch-chroot /mnt /bin/bash -c "sbctl create-keys || true"
-    arch-chroot /mnt /bin/bash -c "sbctl enroll-keys --microsoft || true"
-
-    # Sign UKIs/EFI files if they exist (best-effort)
-    if compgen -G "/mnt/boot/EFI/Linux/*.efi" >/dev/null; then
-        for efi in /mnt/boot/EFI/Linux/*.efi; do
-            [ -f "$efi" ] || continue
-            info "Signing ${efi#/mnt}..."
-            arch-chroot /mnt sbctl sign --save "${efi#/mnt}" || info "Signing failed for ${efi}"
+    for preset in /mnt/etc/mkinitcpio.d/*.preset; do
+        comment_if_exact "$preset" "PRESETS=('default')"
+        uncomment_if_exact "$preset" "PRESETS=('default' 'fallback')"
+        for key in default_uki fallback_uki default_image fallback_image default_options fallback_options; do
+            uncomment_if_commented_key "$preset" "$key"
         done
-    fi
+    done
+
+    arch-chroot /mnt mkdir -p /efi/EFI/Linux
+    arch-chroot /mnt mkinitcpio -P
+    arch-chroot /mnt systemctl enable NetworkManager
+    arch-chroot /mnt sbctl create-keys || true
+    arch-chroot /mnt sbctl enroll-keys --microsoft || true
 }
 
 install_bootloader() {
-    info "Setting up UEFI boot entries..."
-    bootctl install
+    info "Creating UEFI boot entries..."
+    local efi_disk efi_part_num
+    efi_disk=$(lsblk -npo PKNAME "$boot_partition" | head -1)
+    efi_part_num=$(lsblk -npo PARTN "$boot_partition" | head -1)
+
+    local kernels=()
+    for k in linux linux-lts linux-zen linux-hardened; do
+        arch-chroot /mnt pacman -Q $k &>/dev/null && kernels+=("$k")
+    done
+
+    if [[ ${#kernels[@]} -eq 0 ]]; then
+        info "No kernels detected, skipping efibootmgr entries."
+        return
+    fi
+
+    for kernel in "${kernels[@]}"; do
+        arch-chroot /mnt efibootmgr --create --disk ${efi_disk} --part ${efi_part_num} \
+            --label "ArchLinux-${kernel}" --loader "EFI\\Linux\\arch-${kernel}.efi" --unicode
+        arch-chroot /mnt efibootmgr --create --disk ${efi_disk} --part ${efi_part_num} \
+            --label "ArchLinux-${kernel}-fallback" --loader "EFI\\Linux\\arch-${kernel}-fallback.efi" --unicode
+    done
+
+    info "Current EFI boot entries:"
+    arch-chroot /mnt efibootmgr || true
 }
 
 check_root
@@ -287,3 +237,4 @@ configure_system
 install_bootloader
 
 info "Installation base setup complete!"
+
