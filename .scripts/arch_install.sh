@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Enable debug mode - remove this after finding the issue
+trap 'echo "Error on line $LINENO"' ERR
+
 # Arch Linux Automated Installer (Zen + UKI + LUKS2 + Btrfs)
 # Refrence: https://wiki.archlinux.org/title/User:Bai-Chiang/Arch_Linux_installation_with_unified_kernel_image_(UKI),_full_disk_encryption,_secure_boot,_btrfs_snapshots,_and_common_setups
 
@@ -10,23 +13,38 @@ boot_label="EFI"
 root_label="LINUX"
 crypt_name="cryptroot"
 
-error_exit() { echo -e "\e[31m[ERROR] $1\e[0m" >&2; exit 1; }
-info() { echo -e "\e[34m[INFO] $1\e[0m"; }
+error_exit() { 
+    echo "============================================" >&2
+    echo "[ERROR] $1" >&2
+    echo "============================================" >&2
+    exit 1
+}
+info() { echo "[INFO] $1"; }
 
 comment_if_exact() {
     local file="$1"; local pattern="$2"
-    grep -Fxq "$pattern" "$file" && sed -i "s|^$pattern|#$pattern|" "$file"
+    if grep -Fxq "$pattern" "$file"; then
+        sed -i "s|^$pattern|#$pattern|" "$file"
+    fi
 }
 uncomment_if_exact() {
     local file="$1"; local pattern="$2"
-    grep -Eq "^#[ ]*$pattern" "$file" && sed -i "s|^#[ ]*$pattern|$pattern|" "$file"
+    if grep -Eq "^#[ ]*$pattern" "$file"; then
+        sed -i "s|^#[ ]*$pattern|$pattern|" "$file"
+    fi
 }
 uncomment_if_commented_key() {
     local file="$1"; local key="$2"
-    grep -Eq "^#[ ]*${key}=" "$file" && sed -i "s|^#[ ]*${key}=|${key}=|" "$file"
+    if grep -Eq "^#[ ]*${key}=" "$file"; then
+        sed -i "s|^#[ ]*${key}=|${key}=|" "$file"
+    fi
 }
 
-check_root() { (( EUID != 0 )) && error_exit "Run as root!"; }
+check_root() { 
+    if (( EUID != 0 )); then
+        error_exit "Run as root!"
+    fi
+}
 
 check_uefi() {
     info "Checking UEFI boot mode..."
@@ -204,7 +222,7 @@ install_bootloader() {
 
     local kernels=()
     for k in linux linux-lts linux-zen linux-hardened; do
-        arch-chroot /mnt pacman -Q $k &>/dev/null && kernels+=("$k")
+        arch-chroot /mnt pacman -Q $k &>/dev/null && kernels+=("$k") || true
     done
 
     if [[ ${#kernels[@]} -eq 0 ]]; then
@@ -237,4 +255,3 @@ configure_system
 install_bootloader
 
 info "Installation base setup complete!"
-
