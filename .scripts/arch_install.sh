@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
-# Enable debug mode - remove this after finding the issue
-trap 'echo "Error on line $LINENO"' ERR
-
 # Arch Linux Automated Installer (Zen + UKI + LUKS2 + Btrfs)
 # Refrence: https://wiki.archlinux.org/title/User:Bai-Chiang/Arch_Linux_installation_with_unified_kernel_image_(UKI),_full_disk_encryption,_secure_boot,_btrfs_snapshots,_and_common_setups
 
@@ -221,6 +217,7 @@ EOF
     arch-chroot /mnt mkinitcpio -P
     arch-chroot /mnt systemctl enable NetworkManager
     arch-chroot /mnt sbctl create-keys || true
+    arch-chroot /mnt chattr -i /sys/firmware/efi/efivars/* || true
     arch-chroot /mnt sbctl enroll-keys --microsoft || true
 }
 
