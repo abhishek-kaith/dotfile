@@ -67,8 +67,10 @@ sudo systemctl enable --now NetworkManager
 xdg-user-dirs-update
 fc-cache -fv
 
-alias config='/usr/bin/git --git-dir=$HOME/.cfg/ --work-tree=$HOME'
-echo "alias config='/usr/bin/git --git-dir=$HOME/.cfg/ --work-tree=$HOME'" >> $HOME/.bashrc
+curl https://mise.run/zsh | sh
+
 git clone --bare https://github.com/abhishek-kaith/dotfile $HOME/.cfg
+alias config='/usr/bin/git --git-dir=$HOME/.cfg/ --work-tree=$HOME'
 echo  "NOTE add .cfg in gitignore"
 echo  "config config --local status.showUntrackedFiles no"
+echo "alias config='/usr/bin/git --git-dir=$HOME/.cfg/ --work-tree=$HOME'" >> $HOME/.bashrc

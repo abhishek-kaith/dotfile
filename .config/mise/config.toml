@@ -1,0 +1,27 @@
+[tools]
+fzf = "latest"
+bat = "latest"
+zoxide = "latest"
+ripgrep = "latest"
+
+#Language runtimes (global defaults) 
+node = "lts"
+python = "3.12"
+go = "1.22"
+rust = "stable"
+
+#Package managers 
+pnpm = "latest"
+
+#Programs
+neovim = "latest"
+
+[settings]
+# Automatically install tools when entering a directory
+auto_install = true
+# Trust config files automatically (no prompt)
+trusted_config_paths = ["~"]
+# Use shims first in PATH (recommended)
+shims = true
+# Keep output clean
+verbose = false
