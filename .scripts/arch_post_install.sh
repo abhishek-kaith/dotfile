@@ -87,17 +87,12 @@ GIT_REPO="https://github.com/abhishek-kaith/dotfile"
 if [ ! -d "$DOTFILE_REPO" ]; then
   echo "[*] Cloning dotfiles..."
   git clone --bare "$GIT_REPO" "$DOTFILE_REPO"
+  git --git-dir="$DOTFILE_REPO" --work-tree=$HOME checkout
+  git --git-dir="$DOTFILE_REPO" --work-tree=$HOME --local status.showUntrackedFiles no
 else
   echo "[*] Dotfiles repository already exists."
-fi
-
-# Git alias for managing dotfiles
-if ! grep -q "alias config=" "$HOME/.bashrc"; then
-  echo "alias config='/usr/bin/git --git-dir=$HOME/.cfg/ --work-tree=$HOME'" >> "$HOME/.bashrc"
-  echo "config config --local status.showUntrackedFiles no" >> "$HOME/.bashrc"
 fi
 
 echo "[*] Setup complete!"
 echo "NOTE: Add .cfg in .gitignore if not already done."
 echo "Run 'source ~/.bashrc' or restart your shell to load 'config' alias."
-
