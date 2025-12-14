@@ -87,11 +87,12 @@ GIT_REPO="https://github.com/abhishek-kaith/dotfile"
 if [ ! -d "$DOTFILE_REPO" ]; then
   echo "[*] Cloning dotfiles..."
   git clone --bare "$GIT_REPO" "$DOTFILE_REPO"
-  git --git-dir="$DOTFILE_REPO" --work-tree=$HOME checkout
-  git --git-dir="$DOTFILE_REPO" --work-tree=$HOME --local status.showUntrackedFiles no
 else
   echo "[*] Dotfiles repository already exists."
 fi
+
+git --git-dir="$DOTFILE_REPO" --work-tree=$HOME checkout
+git --git-dir="$DOTFILE_REPO" --work-tree=$HOME config --local status.showUntrackedFiles no
 
 echo "[*] Setup complete!"
 echo "NOTE: Add .cfg in .gitignore if not already done."
