@@ -59,6 +59,7 @@ PKGS=(
   ttf-jetbrains-mono-nerd
   ttf-font-awesome
   ttf-nerd-fonts-symbols
+  fontconfig
 )
 
 echo "[*] Installing packages..."
