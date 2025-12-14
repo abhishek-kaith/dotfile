@@ -1,4 +1,5 @@
 [tools]
+jq = "latest"
 fzf = "latest"
 bat = "latest"
 zoxide = "latest"
@@ -21,7 +22,5 @@ neovim = "latest"
 auto_install = true
 # Trust config files automatically (no prompt)
 trusted_config_paths = ["~"]
-# Use shims first in PATH (recommended)
-shims = true
 # Keep output clean
 verbose = false
