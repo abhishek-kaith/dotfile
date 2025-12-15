@@ -110,6 +110,14 @@ else
   echo "[*] No mise config found at $MISE_CONFIG"
 fi
 
+git clone https://github.com/werman/noise-suppression-for-voice.git
+cd noise-suppression-for-voice
+make
+sudo mkdir -p /usr/local/lib/ladspa
+sudo cp librnnoise_ladspa.so /usr/local/lib/ladspa/
+cd ..
+rm -rf noise-suppression-for-voice
+
 echo "[*] Setup complete!"
 echo "NOTE:"
 echo "- mise is installed but NOT hooked into any shell"
