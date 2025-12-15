@@ -94,6 +94,8 @@ fi
 git --git-dir="$DOTFILE_REPO" --work-tree=$HOME checkout
 git --git-dir="$DOTFILE_REPO" --work-tree=$HOME config --local status.showUntrackedFiles no
 
+mise install
+
 echo "[*] Setup complete!"
 echo "NOTE: Add .cfg in .gitignore if not already done."
 echo "Run 'source ~/.bashrc' or restart your shell to load 'config' alias."
