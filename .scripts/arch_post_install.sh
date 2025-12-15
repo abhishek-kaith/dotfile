@@ -139,7 +139,7 @@ sudo ufw --force enable
 # Show status
 sudo ufw status verbose
 
-sudo pacman -Sy niri alacritty fuzzel xwayland-satelite  --needed --noconfirm
+sudo pacman -Sy niri alacritty fuzzel xwayland-satellite  --needed --noconfirm
 
 echo "[*] Setup complete!"
 echo "NOTE:"
