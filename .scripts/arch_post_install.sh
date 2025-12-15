@@ -117,6 +117,7 @@ unzip linux-rnnoise.zip
 sudo mkdir -p /usr/local/lib/ladspa
 sudo cp linux-rnnoise/ladspa/librnnoise_ladspa.so /usr/local/lib/ladspa/
 sudo rm -rf linux-rnnoise.zip
+sudo rm -rf linux-rnnoise
 sudo chmod 644 /usr/local/lib/ladspa/librnnoise_ladspa.so
 systemctl --user enable --now pipewire pipewire-pulse wireplumber
 
