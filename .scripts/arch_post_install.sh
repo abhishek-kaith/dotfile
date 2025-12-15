@@ -65,6 +65,7 @@ PKGS=(
 
 echo "[*] Installing packages..."
 sudo pacman -Syu --needed --noconfirm "${PKGS[@]}"
+sudo pacman -S p7zip libarchive unzip unrar tar gzip bzip2 xz zstd lz4 --needed --noconfirm
 
 echo "[*] Enabling NetworkManager..."
 sudo systemctl enable --now NetworkManager
@@ -111,13 +112,32 @@ else
 fi
 
 sudo pacman -S  pipewire pipewire-audio pipewire-alsa pipewire-pulse pipewire-jack wireplumber pavucontrol
-git clone https://github.com/werman/noise-suppression-for-voice.git
-cd noise-suppression-for-voice
-make
+wget https://github.com/werman/noise-suppression-for-voice/releases/download/v1.10/linux-rnnoise.zip
+unzip linux-rnnoise.zip
 sudo mkdir -p /usr/local/lib/ladspa
-sudo cp librnnoise_ladspa.so /usr/local/lib/ladspa/
-cd ..
-rm -rf noise-suppression-for-voice
+cp linux-rnnoise/ladspa/librnnoise_ladspa.so /usr/local/lib/ladspa/
+rm -rf linux-rnnoise.zip
+sudo chmod 644 /usr/local/lib/ladspa/librnnoise_ladspa.so
+systemctl --user enable --now pipewire pipewire-pulse wireplumber
+
+sudo ufw reset
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+# sudo ufw allow ssh
+# sudo ufw limit ssh
+# Allow local network access (optional, adjust subnet if needed)
+# sudo ufw allow from 192.168.0.0/24
+# Allow basic web traffic if needed
+# sudo ufw allow 80/tcp   # HTTP
+# sudo ufw allow 443/tcp  # HTTPS
+# Enable logging for debugging
+sudo ufw logging on
+# Enable UFW
+sudo ufw --force enable
+# Show status
+sudo ufw status verbose
+
+sudo pacman -Sy niri alacritty fuzzel xwayland-sattelite
 
 echo "[*] Setup complete!"
 echo "NOTE:"

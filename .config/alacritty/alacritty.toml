@@ -1,0 +1,33 @@
+# alacritty.toml
+
+general.import = [
+ "~/.config/alacritty/themes/rose-pine.toml",
+]
+
+[env]
+TERM    = "xterm-256color"
+
+[window]
+
+opacity = 0.9
+
+padding.x = 10
+padding.y = 10
+
+decorations = "Full"
+decorations_theme_variant = "Dark" #"Light" # "Dark"
+
+
+[scrolling]
+history               = 100000
+multiplier            = 3
+
+[font]
+normal                = { family = "JetBrainsMono Nerd Font Mono", style = "Medium" }
+bold                  = { family = "JetBrainsMono Nerd Font Mono", style = "Bold" }
+italic                = { family = "JetBrainsMono Nerd Font Mono", style = "Italic" }
+bold_italic           = { family = "JetBrainsMono Nerd Font Mono", style = "Bold Italic" }
+size                  = 18
+offset                = { x = 0, y = 1 }
+glyph_offset          = { x = 0, y = 0 }
+builtin_box_drawing   = true
