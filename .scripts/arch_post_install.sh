@@ -111,7 +111,7 @@ else
   echo "[*] No mise config found at $MISE_CONFIG"
 fi
 
-sudo pacman -S  pipewire pipewire-audio pipewire-alsa pipewire-pulse pipewire-jack wireplumber pavucontrol
+sudo pacman -S  pipewire pipewire-audio pipewire-alsa pipewire-pulse pipewire-jack wireplumber pavucontrol --needed --noconfirm
 wget https://github.com/werman/noise-suppression-for-voice/releases/download/v1.10/linux-rnnoise.zip
 unzip linux-rnnoise.zip
 sudo mkdir -p /usr/local/lib/ladspa
@@ -120,6 +120,7 @@ sudo rm -rf linux-rnnoise.zip
 sudo chmod 644 /usr/local/lib/ladspa/librnnoise_ladspa.so
 systemctl --user enable --now pipewire pipewire-pulse wireplumber
 
+sudo pacman -S ufw --needed --noconfirm
 sudo ufw reset
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
@@ -137,7 +138,7 @@ sudo ufw --force enable
 # Show status
 sudo ufw status verbose
 
-sudo pacman -Sy niri alacritty fuzzel xwayland-sattelite
+sudo pacman -Sy niri alacritty fuzzel xwayland-sattelite  --needed --noconfirm
 
 echo "[*] Setup complete!"
 echo "NOTE:"
