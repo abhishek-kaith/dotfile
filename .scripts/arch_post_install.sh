@@ -110,6 +110,7 @@ else
   echo "[*] No mise config found at $MISE_CONFIG"
 fi
 
+sudo pacman -S  pipewire pipewire-audio pipewire-alsa pipewire-pulse pipewire-jack wireplumber pavucontrol
 git clone https://github.com/werman/noise-suppression-for-voice.git
 cd noise-suppression-for-voice
 make
