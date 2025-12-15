@@ -59,9 +59,9 @@ alias ls='ls --color'
 alias config='/usr/bin/git --git-dir=$HOME/.cfg/ --work-tree=$HOME'
 
 # Shell integrations
-eval "$(fzf --zsh)"
-eval "$(mise activate zsh)"
 eval "$(zoxide init --cmd cd zsh)"
+eval "$(mise activate zsh)"
+eval "$(fzf --zsh)"
 
 # Dotfiles Notes: 
 # git init --bare $HOME/.cfg
