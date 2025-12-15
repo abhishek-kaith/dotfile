@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+
 PKGS=(
   # Base & build
   base-devel
@@ -15,7 +16,7 @@ PKGS=(
 
   # Networking
   iputils
-  bind-tools          # 'dnsutils' equivalent in Arch
+  bind-tools
   whois
   openssh
   wget
@@ -50,7 +51,7 @@ PKGS=(
   pass-otp
   gnupg
 
-  # Fonts (future GUI / terminal readiness)
+  # Fonts
   ttf-dejavu
   noto-fonts
   noto-fonts-cjk
@@ -74,12 +75,17 @@ xdg-user-dirs-update
 echo "[*] Refreshing font cache..."
 fc-cache -fv
 
-echo "[*] Installing Mise..."
-if ! command -v mise &> /dev/null; then
-  curl -fsSL https://mise.run/zsh | sh
+echo "[*] Installing Mise (non-intrusive)..."
+
+MISE_BIN="$HOME/.local/bin/mise"
+
+if [ ! -x "$MISE_BIN" ]; then
+  mkdir -p "$HOME/.local/bin"
+  curl -fsSL https://mise.jdx.dev/install.sh | sh -s -- --no-modify-path --no-activate
 else
   echo "[*] Mise already installed."
 fi
+
 
 DOTFILE_REPO="$HOME/.cfg"
 GIT_REPO="https://github.com/abhishek-kaith/dotfile"
@@ -91,11 +97,21 @@ else
   echo "[*] Dotfiles repository already exists."
 fi
 
-git --git-dir="$DOTFILE_REPO" --work-tree=$HOME checkout
-git --git-dir="$DOTFILE_REPO" --work-tree=$HOME config --local status.showUntrackedFiles no
+git --git-dir="$DOTFILE_REPO" --work-tree="$HOME" checkout
+git --git-dir="$DOTFILE_REPO" --work-tree="$HOME" config --local status.showUntrackedFiles no
 
-mise install
+
+MISE_CONFIG="$HOME/.config/mise/config.toml"
+
+if [ -f "$MISE_CONFIG" ]; then
+  echo "[*] Installing tools from $MISE_CONFIG (manual mode)..."
+  "$MISE_BIN" install
+else
+  echo "[*] No mise config found at $MISE_CONFIG"
+fi
 
 echo "[*] Setup complete!"
-echo "NOTE: Add .cfg in .gitignore if not already done."
-echo "Run 'source ~/.bashrc' or restart your shell to load 'config' alias."
+echo "NOTE:"
+echo "- mise is installed but NOT hooked into any shell"
+echo "- use ~/.local/bin/mise exec ... explicitly"
+echo "- no shell restart required"
