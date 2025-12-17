@@ -284,6 +284,7 @@ setup_encryption
 format_partitions
 create_subvolumes
 mount_subvolumes
+create_btrfs_swap
 install_base_system
 generate_fstab
 configure_system
