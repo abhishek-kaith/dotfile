@@ -239,16 +239,16 @@ echo "${CRYPT_NAME} UUID=${LUKS_UUID} - password-echo=no,x-systemd.device-timeou
 RESUME_OFFSET=$(btrfs inspect-internal map-swapfile -r /mnt/swap/swapfile)
 
 # Kernel command line
-CMDLINE_BASE="root=/dev/mapper/${CRYPT_NAME} rootfstype=btrfs rootflags=subvol=/@ rw mem_sleep_default=deep resume=/swap/swapfile resume_offset=$RESUME_OFFSET modprobe.blacklist=pcspkr"
+# CMDLINE_BASE="root=/dev/mapper/${CRYPT_NAME} rootfstype=btrfs rootflags=subvol=/@ rw mem_sleep_default=deep resume=/swap/swapfile resume_offset=$RESUME_OFFSET modprobe.blacklist=pcspkr"
+CMDLINE_BASE="root=/dev/mapper/${CRYPT_NAME} rootfstype=btrfs rootflags=subvol=/@ rw"
 
-echo "$CMDLINE_BASE quiet loglevel=3" > /mnt/etc/kernel/cmdline
+echo "$CMDLINE_BASE mem_sleep_default=deep" > /mnt/etc/kernel/cmdline
 echo "$CMDLINE_BASE" > /mnt/etc/kernel/cmdline_fallback
 
 # Update mkinitcpio presets for UKI
 for preset in /mnt/etc/mkinitcpio.d/*.preset; do
     sed -i "s/^[[:space:]]*PRESETS=('default')/# PRESETS=('default')/" "$preset"
     sed -i "s/^[[:space:]]*#*[[:space:]]*PRESETS=('default' 'fallback')/PRESETS=('default' 'fallback')/" "$preset"
-    
     for key in default_uki fallback_uki default_image fallback_image default_options fallback_options; do
         sed -i "s/^[[:space:]]*#*[[:space:]]*\(${key}=\)/\1/" "$preset"
     done
