@@ -297,18 +297,7 @@ else
     done
 fi
 
-echo ""
-echo "[INFO] Current EFI boot entries:"
-arch-chroot /mnt efibootmgr || true
-
-# Installation Complete
-echo ""
-echo "============================================"
-echo "[SUCCESS] Installation complete!"
-echo "============================================"
-echo ""
 echo "Next steps:"
-echo "1. Exit and unmount: umount -R /mnt"
+echo "1. Exit and unmount"
 echo "2. Close LUKS: cryptsetup close $CRYPT_NAME"
 echo "3. Reboot and enable Secure Boot in BIOS"
-echo ""
