@@ -121,29 +121,15 @@ sudo chmod 644 /usr/local/lib/ladspa/librnnoise_ladspa.so
 sudo usermod -a -G rtkit $USER
 systemctl --user enable pipewire pipewire-pulse wireplumber
 
-sudo pacman -S --needed --noconfirm power-profiles-daemon tlp ryzenadj btop powertop
+sudo pacman -Sy niri alacritty fuzzel xwayland-satellite xdg-desktop-portal  --needed --noconfirm
+git clone https://aur.archlinux.org/yay yay
+cd yay
+makepkg -si
+cd ..
+sudo rm -rf yay
+
+yay -S --needed --noconfirm power-profiles-daemon ryzenadj btop powertop
 sudo systemctl enable --now power-profiles-daemon
-sudo systemctl enable --now tlp
-
-sudo tee /etc/tlp.conf > /dev/null <<'EOF'
-TLP_ENABLE=1
-
-# ThinkPad battery charge thresholds
-START_CHARGE_THRESH_BAT0=85
-STOP_CHARGE_THRESH_BAT0=95
-
-# Do not touch CPU / platform (avoid conflicts)
-CPU_SCALING_GOVERNOR_ON_AC=keep
-CPU_SCALING_GOVERNOR_ON_BAT=keep
-
-CPU_ENERGY_PERF_POLICY_ON_AC=keep
-CPU_ENERGY_PERF_POLICY_ON_BAT=keep
-
-PLATFORM_PROFILE_ON_AC=keep
-PLATFORM_PROFILE_ON_BAT=keep
-EOF
-
-sudo tlp start
 
 sudo pacman -S ufw --needed --noconfirm
 sudo ufw reset
@@ -163,14 +149,11 @@ sudo ufw --force enable
 # Show status
 sudo ufw status verbose
 
-sudo pacman -Sy niri alacritty fuzzel xwayland-satellite  --needed --noconfirm
-git clone https://aur.archlinux.org/yay yay
-cd yay
-makepkg -si
-cd ..
-sudo rm -rf yay
-
 yay -S noctalia-shell cliphist matugen cava wlsunset power-profiles-daemon --needed --noconfirm
 systemctl --user enable --now noctalia.service
+
+sudo pacman -Syu nautilus evince mpv ffmpeg imagemagick gvfs gvfs-afc gvfs-gphoto2 gvfs-mtp gvfs-nfs gvfs-smb gvfs-google gvfs-wsdd ffmpegthumbnailer poppler gdk-pixbuf2 librsvg tumbler
+
+sudo pacman -S eog gthumb gimp
 
 echo "[*] Setup complete!"
