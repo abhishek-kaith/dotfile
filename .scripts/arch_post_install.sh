@@ -28,7 +28,6 @@ PKGS=(
   usbutils
   binutils
   lsof
-  btop
 
   # Filesystems
   util-linux
@@ -111,7 +110,7 @@ else
   echo "[*] No mise config found at $MISE_CONFIG"
 fi
 
-sudo pacman -S  pipewire pipewire-audio pipewire-alsa pipewire-pulse pipewire-jack wireplumber pavucontrol --needed --noconfirm
+sudo pacman -S pipewire pipewire-alsa pipewire-jack pipewire-pulse gst-plugin-pipewire wireplumber rtkit pavucontrol alsa-utils  --needed --noconfirm
 wget https://github.com/werman/noise-suppression-for-voice/releases/download/v1.10/linux-rnnoise.zip
 unzip linux-rnnoise.zip
 sudo mkdir -p /usr/local/lib/ladspa
@@ -119,7 +118,32 @@ sudo cp linux-rnnoise/ladspa/librnnoise_ladspa.so /usr/local/lib/ladspa/
 sudo rm -rf linux-rnnoise.zip
 sudo rm -rf linux-rnnoise
 sudo chmod 644 /usr/local/lib/ladspa/librnnoise_ladspa.so
-systemctl --user enable --now pipewire pipewire-pulse wireplumber
+sudo usermod -a -G rtkit $USER
+systemctl --user enable pipewire pipewire-pulse wireplumber
+
+sudo pacman -S --needed --noconfirm power-profiles-daemon tlp ryzenadj btop powertop
+sudo systemctl enable --now power-profiles-daemon
+sudo systemctl enable --now tlp
+
+sudo tee /etc/tlp.conf > /dev/null <<'EOF'
+TLP_ENABLE=1
+
+# ThinkPad battery charge thresholds
+START_CHARGE_THRESH_BAT0=85
+STOP_CHARGE_THRESH_BAT0=95
+
+# Do not touch CPU / platform (avoid conflicts)
+CPU_SCALING_GOVERNOR_ON_AC=keep
+CPU_SCALING_GOVERNOR_ON_BAT=keep
+
+CPU_ENERGY_PERF_POLICY_ON_AC=keep
+CPU_ENERGY_PERF_POLICY_ON_BAT=keep
+
+PLATFORM_PROFILE_ON_AC=keep
+PLATFORM_PROFILE_ON_BAT=keep
+EOF
+
+sudo tlp start
 
 sudo pacman -S ufw --needed --noconfirm
 sudo ufw reset
@@ -140,9 +164,13 @@ sudo ufw --force enable
 sudo ufw status verbose
 
 sudo pacman -Sy niri alacritty fuzzel xwayland-satellite  --needed --noconfirm
+git clone https://aur.archlinux.org/yay yay
+cd yay
+makepkg -si
+cd ..
+sudo rm -rf yay
+
+yay -S noctalia-shell cliphist matugen cava wlsunset power-profiles-daemon --needed --noconfirm
+systemctl --user enable --now noctalia.service
 
 echo "[*] Setup complete!"
-echo "NOTE:"
-echo "- mise is installed but NOT hooked into any shell"
-echo "- use ~/.local/bin/mise exec ... explicitly"
-echo "- no shell restart required"

@@ -202,8 +202,8 @@ EOF
     luks_uuid=$(blkid -s UUID -o value "$main_partition")
     echo "${crypt_name} UUID=${luks_uuid} - password-echo=no,x-systemd.device-timeout=0,timeout=0,no-read-workqueue,no-write-workqueue,discard" > /mnt/etc/crypttab.initramfs
 
-    echo "root=/dev/mapper/${crypt_name} rootfstype=btrfs rootflags=subvol=/@ rw modprobe.blacklist=pcspkr" > /mnt/etc/kernel/cmdline
-    echo "root=/dev/mapper/${crypt_name} rootfstype=btrfs rootflags=subvol=/@ rw modprobe.blacklist=pcspkr" > /mnt/etc/kernel/cmdline_fallback
+    echo "root=/dev/mapper/${crypt_name} rootfstype=btrfs rootflags=subvol=/@ rw mem_sleep_default=deep modprobe.blacklist=pcspkr" > /mnt/etc/kernel/cmdline
+    echo "root=/dev/mapper/${crypt_name} rootfstype=btrfs rootflags=subvol=/@ rw mem_sleep_default=deep modprobe.blacklist=pcspkr" > /mnt/etc/kernel/cmdline_fallback
 
     for preset in /mnt/etc/mkinitcpio.d/*.preset; do
         comment_if_exact "$preset" "PRESETS=('default')"
