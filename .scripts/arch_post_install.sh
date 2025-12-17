@@ -121,14 +121,12 @@ sudo chmod 644 /usr/local/lib/ladspa/librnnoise_ladspa.so
 sudo usermod -a -G rtkit $USER
 systemctl --user enable pipewire pipewire-pulse wireplumber
 
-sudo pacman -Sy niri alacritty fuzzel xwayland-satellite xdg-desktop-portal  --needed --noconfirm
-git clone https://aur.archlinux.org/yay yay
 cd yay
 makepkg -si
 cd ..
 sudo rm -rf yay
 
-yay -S --needed --noconfirm power-profiles-daemon ryzenadj btop powertop
+yay -S --needed --noconfirm power-profiles-daemon tlp ryzenadj btop powertop
 sudo systemctl enable --now power-profiles-daemon
 
 sudo pacman -S ufw --needed --noconfirm
@@ -149,11 +147,12 @@ sudo ufw --force enable
 # Show status
 sudo ufw status verbose
 
+sudo pacman -Sy niri alacritty fuzzel xwayland-satellite xdg-desktop-portal  --needed --noconfirm
+git clone https://aur.archlinux.org/yay yay
+
 yay -S noctalia-shell cliphist matugen cava wlsunset power-profiles-daemon --needed --noconfirm
 systemctl --user enable --now noctalia.service
 
-sudo pacman -Syu nautilus evince mpv ffmpeg imagemagick gvfs gvfs-afc gvfs-gphoto2 gvfs-mtp gvfs-nfs gvfs-smb gvfs-google gvfs-wsdd ffmpegthumbnailer poppler gdk-pixbuf2 librsvg tumbler
-
-sudo pacman -S eog gthumb gimp
+sudo pacman -Syu nautilus evince mpv ffmpeg imagemagick gvfs gvfs-afc gvfs-gphoto2 gvfs-mtp gvfs-nfs gvfs-smb gvfs-google gvfs-wsdd ffmpegthumbnailer poppler gdk-pixbuf2 librsvg libgepub libopenraw tumbler gthumb --needed --noconfirm
 
 echo "[*] Setup complete!"
