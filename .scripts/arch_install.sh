@@ -8,6 +8,7 @@ default_hostname="archbox"
 boot_label="EFI"
 root_label="LINUX"
 crypt_name="cryptroot"
+swapfile="/swap/swapfile"
 
 error_exit() { 
     echo "============================================" >&2
@@ -116,26 +117,51 @@ format_partitions() {
 create_subvolumes() {
     info "Creating Btrfs subvolumes..."
     mount "/dev/mapper/$crypt_name" /mnt
-    for subvol in @ @home @snapshots @var_log @var_cache; do
+
+    # Create main subvolumes including swap
+    for subvol in @ @home @snapshots @var_log @var_cache @swap; do
         btrfs subvolume create "/mnt/$subvol"
     done
-    mkdir -p /mnt/{home,.snapshots,var/log,var/cache}
+
+    # Create standard directories
+    mkdir -p /mnt/{home,.snapshots,var/log,var/cache,swap}
     chmod 700 /mnt/.snapshots
+
     umount /mnt
 }
 
 mount_subvolumes() {
     info "Mounting subvolumes..."
     local opts="ssd,noatime,compress=zstd:1,space_cache=v2,autodefrag"
+
+    # Root
     mount -o $opts,subvol=@ /dev/mapper/$crypt_name /mnt
-    mkdir -p /mnt/{home,.snapshots,var/log,var/cache}
+    mkdir -p /mnt/{home,.snapshots,var/log,var/cache,swap}
+
+    # Other subvolumes
     mount -o $opts,subvol=@home,nodev /dev/mapper/$crypt_name /mnt/home
     mount -o $opts,subvol=@snapshots,nodev,nosuid,noexec /dev/mapper/$crypt_name /mnt/.snapshots
     mount -o $opts,subvol=@var_log,nodev,nosuid,noexec /dev/mapper/$crypt_name /mnt/var/log
     mount -o $opts,subvol=@var_cache,nodev,nosuid,noexec /dev/mapper/$crypt_name /mnt/var/cache
+    mount -o $opts,subvol=@swap,nodev,nosuid,noexec /dev/mapper/$crypt_name /mnt/swap
 
+    # EFI
     mkdir -p /mnt/efi
     mount "$boot_partition" /mnt/efi || error_exit "Failed to mount EFI"
+}
+
+create_btrfs_swap() {
+    info "Creating Btrfs swap file..."
+
+    local ram_size_mb=$(grep MemTotal /proc/meminfo | awk '{print int($2/1024)}')
+    local swap_size_mb=$((ram_size_mb + 1024))
+
+    info "RAM detected: ${ram_size_mb}MB, creating swap file of ${swap_size_mb}MB for hibernation."
+
+    btrfs filesystem mkswapfile --size "${swap_size_mb}M" "$swapfile"
+    swapon "$swapfile"
+
+    info "Btrfs swap file created and enabled."
 }
 
 select_microcode() {
@@ -202,8 +228,9 @@ EOF
     luks_uuid=$(blkid -s UUID -o value "$main_partition")
     echo "${crypt_name} UUID=${luks_uuid} - password-echo=no,x-systemd.device-timeout=0,timeout=0,no-read-workqueue,no-write-workqueue,discard" > /mnt/etc/crypttab.initramfs
 
-    echo "root=/dev/mapper/${crypt_name} rootfstype=btrfs rootflags=subvol=/@ rw mem_sleep_default=deep modprobe.blacklist=pcspkr" > /mnt/etc/kernel/cmdline
-    echo "root=/dev/mapper/${crypt_name} rootfstype=btrfs rootflags=subvol=/@ rw mem_sleep_default=deep modprobe.blacklist=pcspkr" > /mnt/etc/kernel/cmdline_fallback
+    resume_offset=$(btrfs inspect-internal map-swapfile -r "$swapfile")
+    echo "root=/dev/mapper/${crypt_name} rootfstype=btrfs rootflags=subvol=/@ rw mem_sleep_default=deep resume=$swapfile resume_offset=$resume_offset modprobe.blacklist=pcspkr quiet loglevel=3" > /mnt/etc/kernel/cmdline
+    echo "root=/dev/mapper/${crypt_name} rootfstype=btrfs rootflags=subvol=/@ rw mem_sleep_default=deep resume=$swapfile resume_offset=$resume_offset modprobe.blacklist=pcspkr" > /mnt/etc/kernel/cmdline_fallback
 
     for preset in /mnt/etc/mkinitcpio.d/*.preset; do
         comment_if_exact "$preset" "PRESETS=('default')"
