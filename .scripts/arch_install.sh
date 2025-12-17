@@ -223,7 +223,7 @@ EOF
 127.0.1.1   ${hostname}.localdomain   ${hostname}
 EOF
 
-    sed -i 's/^HOOKS=.*/HOOKS=(base systemd autodetect keyboard keymap sd-vconsole block sd-encrypt filesystems fsck)/' /mnt/etc/mkinitcpio.conf
+    sed -i 's/^HOOKS=.*/HOOKS=(base systemd autodetect keyboard keymap sd-vconsole block sd-encrypt filesystems resume fsck)/' /mnt/etc/mkinitcpio.conf
 
     luks_uuid=$(blkid -s UUID -o value "$main_partition")
     echo "${crypt_name} UUID=${luks_uuid} - password-echo=no,x-systemd.device-timeout=0,timeout=0,no-read-workqueue,no-write-workqueue,discard" > /mnt/etc/crypttab.initramfs
