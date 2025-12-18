@@ -39,6 +39,7 @@ PKGS=(
   # User environment
   xdg-user-dirs
   tmux
+  zsh
 
   # Secure Boot & TPM
   sbctl
@@ -121,6 +122,7 @@ sudo chmod 644 /usr/local/lib/ladspa/librnnoise_ladspa.so
 sudo usermod -a -G rtkit $USER
 systemctl --user enable pipewire pipewire-pulse wireplumber
 
+git clone https://aur.archlinux.org/yay yay
 cd yay
 makepkg -si
 cd ..
@@ -147,12 +149,13 @@ sudo ufw --force enable
 # Show status
 sudo ufw status verbose
 
-sudo pacman -Sy niri alacritty fuzzel xwayland-satellite xdg-desktop-portal  --needed --noconfirm
-git clone https://aur.archlinux.org/yay yay
+sudo pacman -Sy niri alacritty fuzzel xwayland-satellite xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-gnome  --needed --noconfirm
 
 yay -S noctalia-shell cliphist matugen cava wlsunset power-profiles-daemon --needed --noconfirm
 systemctl --user enable --now noctalia.service
 
 sudo pacman -Syu nautilus evince mpv ffmpeg imagemagick gvfs gvfs-afc gvfs-gphoto2 gvfs-mtp gvfs-nfs gvfs-smb gvfs-google gvfs-wsdd ffmpegthumbnailer poppler gdk-pixbuf2 librsvg libgepub libopenraw tumbler gthumb --needed --noconfirm
+
+sudo pacman -S firefox speech-dispatcher onnxruntime libnotify hunspell-en_US festival espeak-ng --needed --noconfirm
 
 echo "[*] Setup complete!"
