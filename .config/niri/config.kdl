@@ -59,7 +59,7 @@ layout {
     // You can change how the focus ring looks.
     focus-ring {
         // off
-        width 2
+        width 1.5
         active-color "#7fc8ff"
         inactive-color "#505050"
         // active-gradient from="#80c8ff" to="#c7ff7f" angle=45
