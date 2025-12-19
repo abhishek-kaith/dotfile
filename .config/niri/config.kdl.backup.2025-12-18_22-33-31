@@ -140,7 +140,6 @@ binds {
     Mod+Return hotkey-overlay-title="Open a Terminal: alacritty" { spawn "alacritty"; }
     Mod+D hotkey-overlay-title="Run an Application: fuzzel" { spawn "fuzzel"; }
     Super+Alt+L hotkey-overlay-title="Lock the Screen: qs" { spawn-sh "qs -c noctalia-shell ipc call lockScreen lock"; }
-    Super+Space hotkey-overlay-title="Launchaer: qs" {spawn-sh "qs -c noctalia-shell ipc call launcher toggle";}
 
     Super+Alt+S allow-when-locked=true hotkey-overlay-title=null { spawn-sh "pkill orca || exec orca"; }
 
@@ -256,9 +255,4 @@ binds {
     Mod+Escape allow-inhibiting=false { toggle-keyboard-shortcuts-inhibit; }
     Mod+Shift+E { quit; }
 }
-
-environment {
-  QT_QPA_PLATFORMTHEME "qt6ct"
-}
-
 include "./noctalia.kdl"

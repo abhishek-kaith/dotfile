@@ -154,8 +154,15 @@ sudo pacman -Sy niri alacritty fuzzel xwayland-satellite xdg-desktop-portal xdg-
 yay -S noctalia-shell cliphist matugen cava wlsunset power-profiles-daemon --needed --noconfirm
 systemctl --user enable --now noctalia.service
 
+sudo pacman -S speech-dispatcher libnotify hunspell-en_US festival espeak-ng --needed --noconfirm
+
 sudo pacman -Syu nautilus evince mpv ffmpeg imagemagick gvfs gvfs-afc gvfs-gphoto2 gvfs-mtp gvfs-nfs gvfs-smb gvfs-google gvfs-wsdd ffmpegthumbnailer poppler gdk-pixbuf2 librsvg libgepub libopenraw tumbler gthumb --needed --noconfirm
 
-sudo pacman -S firefox speech-dispatcher onnxruntime libnotify hunspell-en_US festival espeak-ng --needed --noconfirm
+sudo pacman -S flatpak adw-gtk-theme nwg-look qt6ct
+flatpak install flathub app.zen_browser.zen
+flatpak install org.gtk.Gtk3theme.adw-gtk3-dark
+flatpak install org.gtk.Gtk3theme.adw-gtk3
+
+# firefox onnxruntime 
 
 echo "[*] Setup complete!"
