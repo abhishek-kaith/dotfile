@@ -38,6 +38,8 @@ PKGS=(
 
   # User environment
   xdg-user-dirs
+  xdg-utils 
+  handlr
   tmux
   zsh
 
@@ -153,6 +155,8 @@ sudo pacman -Sy niri alacritty fuzzel xwayland-satellite xdg-desktop-portal xdg-
 
 yay -S noctalia-shell cliphist matugen cava wlsunset power-profiles-daemon --needed --noconfirm
 systemctl --user enable --now noctalia.service
+
+sudo pacman -S keepassxc qt5-wayland --needed --noconfirm
 
 sudo pacman -S speech-dispatcher libnotify hunspell-en_US festival espeak-ng --needed --noconfirm
 
