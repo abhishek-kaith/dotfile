@@ -133,10 +133,9 @@ mount "$BOOT_PARTITION" /mnt/efi
 # Create Btrfs Swap File
 echo "[INFO] Creating Btrfs swap file..."
 SWAPFILE="/mnt/swap/swapfile"
-RAM_SIZE_MB=$(grep MemTotal /proc/meminfo | awk '{print int($2/1024)}')
-SWAP_SIZE_MB=$((RAM_SIZE_MB + 1024))  # +1GB for hibernation safety
+SWAP_SIZE_MB=8192
 
-echo "[INFO] RAM: ${RAM_SIZE_MB}MB, creating ${SWAP_SIZE_MB}MB swap file..."
+echo "[INFO] creating ${SWAP_SIZE_MB}MB swap file..."
 btrfs filesystem mkswapfile --size "${SWAP_SIZE_MB}M" "$SWAPFILE"
 chmod 600 "$SWAPFILE"
 swapon "$SWAPFILE"
@@ -160,10 +159,10 @@ echo "[INFO] Selected microcode: ${MICROCODE:-None}"
 echo "[INFO] Installing base system..."
 BASE_PACKAGES=(
     base base-devel
-    linux-zen linux-zen-headers
+    linux-zen 
+    linux-zen-headers
     linux-firmware
     btrfs-progs
-    efibootmgr
     networkmanager
     terminus-font
     neovim
@@ -227,7 +226,7 @@ EOF
 echo "[INFO] Configuring initramfs..."
 
 # Update mkinitcpio hooks
-sed -i 's/^HOOKS=.*/HOOKS=(base systemd autodetect keyboard keymap sd-vconsole block sd-encrypt filesystems resume fsck)/' \
+sed -i 's/^HOOKS=.*/HOOKS=(base systemd autodetect keyboard keymap sd-vconsole block sd-encrypt filesystems fsck)/' \
     /mnt/etc/mkinitcpio.conf
 
 # Crypttab for initramfs
@@ -235,11 +234,7 @@ LUKS_UUID=$(blkid -s UUID -o value "$MAIN_PARTITION")
 echo "${CRYPT_NAME} UUID=${LUKS_UUID} - password-echo=no,x-systemd.device-timeout=0,timeout=0,no-read-workqueue,no-write-workqueue,discard" \
     > /mnt/etc/crypttab.initramfs
 
-# Calculate swap resume offset
-RESUME_OFFSET=$(btrfs inspect-internal map-swapfile -r /mnt/swap/swapfile)
-
 # Kernel command line
-# CMDLINE_BASE="root=/dev/mapper/${CRYPT_NAME} rootfstype=btrfs rootflags=subvol=/@ rw mem_sleep_default=deep resume=/swap/swapfile resume_offset=$RESUME_OFFSET modprobe.blacklist=pcspkr"
 CMDLINE_BASE="root=/dev/mapper/${CRYPT_NAME} rootfstype=btrfs rootflags=subvol=/@ rw"
 
 echo "$CMDLINE_BASE mem_sleep_default=deep" > /mnt/etc/kernel/cmdline
@@ -262,40 +257,16 @@ arch-chroot /mnt mkinitcpio -P
 echo "[INFO] Enabling system services..."
 arch-chroot /mnt systemctl enable NetworkManager
 
-# Secure Boot Setup
-echo "[INFO] Setting up Secure Boot..."
+# Bootloader Install
+echo "Bootloader Install"
+arch-chroot /mnt bootctl install
+
 arch-chroot /mnt sbctl create-keys || true
-arch-chroot /mnt chattr -i /sys/firmware/efi/efivars/* 2>/dev/null || true
+chattr -i /sys/firmware/efi/efivars/* 2>/dev/null || true
 arch-chroot /mnt sbctl enroll-keys --microsoft || true
 
-# UEFI Boot Entries
-echo "[INFO] Creating UEFI boot entries..."
-
-EFI_DISK=$(lsblk -npo PKNAME "$BOOT_PARTITION" | head -1)
-EFI_PART_NUM=$(lsblk -npo PARTN "$BOOT_PARTITION" | head -1)
-
-# Detect installed kernels
-INSTALLED_KERNELS=()
-for kernel in linux linux-lts linux-zen linux-hardened; do
-    if arch-chroot /mnt pacman -Q "$kernel" &>/dev/null; then
-        INSTALLED_KERNELS+=("$kernel")
-    fi
-done
-
-if [[ ${#INSTALLED_KERNELS[@]} -eq 0 ]]; then
-    echo "[WARN] No kernels detected for boot entry creation."
-else
-    for kernel in "${INSTALLED_KERNELS[@]}"; do
-        # Sign UKI images
-        arch-chroot /mnt sbctl sign --save /efi/EFI/Linux/arch-${kernel}.efi
-        arch-chroot /mnt sbctl sign --save /efi/EFI/Linux/arch-${kernel}-fallback.efi
-        # Create boot entries
-        arch-chroot /mnt efibootmgr --create --disk "$EFI_DISK" --part "$EFI_PART_NUM" \
-            --label "ArchLinux-${kernel}" --loader "EFI\\Linux\\arch-${kernel}.efi" --unicode
-        arch-chroot /mnt efibootmgr --create --disk "$EFI_DISK" --part "$EFI_PART_NUM" \
-            --label "ArchLinux-${kernel}-fallback" --loader "EFI\\Linux\\arch-${kernel}-fallback.efi" --unicode
-    done
-fi
+arch-chroot /mnt sbctl sign-all
+arch-chroot /mnt sbctl verify
 
 echo "Next steps:"
 echo "1. Exit and unmount"
