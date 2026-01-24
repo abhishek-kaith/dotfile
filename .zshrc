@@ -79,6 +79,9 @@ eval "$(mise activate zsh)"
 eval "$(zoxide init --cmd cd zsh)"
 eval "$(fzf --zsh)"
 
+
+export EDITOR=nvim
+
 # Dotfiles Notes: 
 # git init --bare $HOME/.cfg
 # alias config='/usr/bin/git --git-dir=$HOME/.cfg/ --work-tree=$HOME'

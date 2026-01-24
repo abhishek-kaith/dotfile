@@ -99,7 +99,7 @@ layout {
 
 // To run a shell command (with variables, pipes, etc.), use spawn-sh-at-startup:
 // spawn-at-startup "qs" "-c" "noctalia-shell"
-spawn-at-startup "dms" "run"
+spawn-at-startup "bash" "-c" "wl-paste --watch cliphist store &"
 
 hotkey-overlay {
     // Uncomment this line to disable the "Important Hotkeys" pop-up at startup.
@@ -136,25 +136,14 @@ layer-rule {
 }
 
 window-rule {
-  // Rounded corners for a modern look.
   geometry-corner-radius 5
-
-  // Clips window contents to the rounded corner boundaries.
   clip-to-geometry true
-}
-
-debug {
-  // Allows notification actions and window activation from Noctalia.
-  honor-xdg-activation-with-invalid-serial
 }
 
 binds {
     Mod+Shift+Slash { show-hotkey-overlay; }
-
     Mod+Return hotkey-overlay-title="Open a Terminal: alacritty" { spawn "alacritty"; }
     Mod+D hotkey-overlay-title="Run an Application: fuzzel" { spawn "fuzzel"; }
-    // Super+Alt+L hotkey-overlay-title="Lock the Screen: qs" { spawn-sh "qs -c noctalia-shell ipc call lockScreen lock"; }
-    // Super+Space hotkey-overlay-title="Launchaer: qs" {spawn-sh "qs -c noctalia-shell ipc call launcher toggle";}
 
     Super+Alt+S allow-when-locked=true hotkey-overlay-title=null { spawn-sh "pkill orca || exec orca"; }
 
@@ -272,13 +261,20 @@ binds {
 }
 
 environment {
-  QT_QPA_PLATFORMTHEME "qt6ct"
-  QT_QPA_PLATFORMTHEME_QT6 "qt6ct"
+  XDG_CURRENT_DESKTOP "niri"
+  QT_QPA_PLATFORM "wayland"
+  ELECTRON_OZONE_PLATFORM_HINT "auto"
+  QT_QPA_PLATFORMTHEME "gtk3"
+  QT_QPA_PLATFORMTHEME_QT6 "gtk3"
 }
+// environment {
+//   QT_QPA_PLATFORMTHEME "qt6ct"
+//   QT_QPA_PLATFORMTHEME_QT6 "qt6ct"
+// }
 
 include "dms/colors.kdl"
 include "dms/layout.kdl"
 include "dms/alttab.kdl"
 include "dms/binds.kdl"
-
+include "dms/wpblur.kdl"
 include "dms/cursor.kdl"

@@ -168,6 +168,7 @@ BASE_PACKAGES=(
     neovim
     sbctl
     openssh
+    git
 )
 
 [[ -n "$MICROCODE" ]] && BASE_PACKAGES+=("$MICROCODE")

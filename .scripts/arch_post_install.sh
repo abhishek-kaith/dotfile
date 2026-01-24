@@ -1,175 +1,190 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PKGS=(
-  # Base & build
-  base-devel
-  sudo
-  git
+# Helpers
+install_pacman() {
+  sudo pacman -Syu --needed --noconfirm "$@"
+}
 
-  # Help & usability
-  man
-  tldr
-  tree
-  less
-  which
+enable_service() {
+  sudo systemctl enable --now "$1"
+}
 
-  # Networking
-  iputils
-  bind-tools
-  whois
-  openssh
-  wget
-  curl
-  networkmanager
-
-  # Hardware & system
-  pciutils
-  usbutils
-  binutils
-  lsof
-
-  # Filesystems
-  util-linux
-  e2fsprogs
-  dosfstools
-  exfatprogs
-  ntfs-3g
-
-  # User environment
-  zsh
-  xdg-user-dirs
-  xdg-utils 
-  handlr
-  tmux
-  zsh
-
-  # Secure Boot & TPM
-  sbctl
-  tpm2-tools
-  tpm2-tss
-
-  # Password management
-  pass
-  pass-otp
-  gnupg
-
-  # Fonts
-  ttf-dejavu
-  noto-fonts
-  noto-fonts-cjk
-  noto-fonts-emoji
-  ttf-jetbrains-mono
-  ttf-jetbrains-mono-nerd
-  ttf-font-awesome
-  ttf-nerd-fonts-symbols
-  fontconfig
+# Base system packages
+BASE_PKGS=(
+  base-devel sudo git
+  man tldr tree less which
 )
 
-echo "[*] Installing packages..."
-sudo pacman -Syu --needed --noconfirm "${PKGS[@]}"
-sudo pacman -S p7zip libarchive unzip unrar tar gzip bzip2 xz zstd lz4 --needed --noconfirm
+NETWORK_PKGS=(
+  iputils bind-tools whois
+  openssh wget curl
+  networkmanager
+)
 
-echo "[*] Enabling NetworkManager..."
-sudo systemctl enable --now NetworkManager
+SYSTEM_PKGS=(
+  pciutils usbutils binutils lsof
+  util-linux e2fsprogs dosfstools
+  exfatprogs ntfs-3g
+)
 
-echo "[*] Updating user directories..."
+USER_ENV_PKGS=(
+  zsh tmux
+  xdg-user-dirs xdg-utils handlr
+)
+
+SECURITY_PKGS=(
+  sbctl tpm2-tools tpm2-tss keepassxc
+  pass pass-otp gnupg
+)
+
+ARCHIVE_PKGS=(
+  p7zip libarchive unzip unrar
+  tar gzip bzip2 xz zstd lz4
+)
+
+FONT_PKGS=(
+  fontconfig
+  ttf-dejavu
+  noto-fonts noto-fonts-cjk noto-fonts-emoji
+  ttf-jetbrains-mono ttf-jetbrains-mono-nerd
+  ttf-font-awesome ttf-nerd-fonts-symbols
+)
+
+echo "[*] Installing base system packages..."
+install_pacman \
+  "${BASE_PKGS[@]}" \
+  "${NETWORK_PKGS[@]}" \
+  "${SYSTEM_PKGS[@]}" \
+  "${USER_ENV_PKGS[@]}" \
+  "${SECURITY_PKGS[@]}" \
+  "${ARCHIVE_PKGS[@]}" \
+  "${FONT_PKGS[@]}"
+
+enable_service NetworkManager
+
+# User directories & fonts
 xdg-user-dirs-update
-
-echo "[*] Refreshing font cache..."
 fc-cache -fv
 
-echo "[*] Installing Mise (non-intrusive)..."
-
+# Mise
 MISE_BIN="$HOME/.local/bin/mise"
 
-if [ ! -x "$MISE_BIN" ]; then
+if [[ ! -x "$MISE_BIN" ]]; then
+  echo "[*] Installing mise..."
   mkdir -p "$HOME/.local/bin"
   curl -fsSL https://mise.jdx.dev/install.sh | sh -s -- --no-modify-path --no-activate
 else
   echo "[*] Mise already installed."
 fi
 
-
+# Dotfiles (bare repo)
 DOTFILE_REPO="$HOME/.cfg"
 GIT_REPO="https://github.com/abhishek-kaith/dotfile"
 
-if [ ! -d "$DOTFILE_REPO" ]; then
+if [[ ! -d "$DOTFILE_REPO" ]]; then
   echo "[*] Cloning dotfiles..."
   git clone --bare "$GIT_REPO" "$DOTFILE_REPO"
+  git --git-dir="$DOTFILE_REPO" --work-tree="$HOME" checkout
+  git --git-dir="$DOTFILE_REPO" --work-tree="$HOME" config --local status.showUntrackedFiles no
 else
-  echo "[*] Dotfiles repository already exists."
+  echo "[*] Dotfiles already present."
 fi
 
-git --git-dir="$DOTFILE_REPO" --work-tree="$HOME" checkout
-git --git-dir="$DOTFILE_REPO" --work-tree="$HOME" config --local status.showUntrackedFiles no
-
-
+# Mise tools
 MISE_CONFIG="$HOME/.config/mise/config.toml"
-
-if [ -f "$MISE_CONFIG" ]; then
-  echo "[*] Installing tools from $MISE_CONFIG (manual mode)..."
+if [[ -f "$MISE_CONFIG" ]]; then
   "$MISE_BIN" install
-else
-  echo "[*] No mise config found at $MISE_CONFIG"
 fi
 
-sudo pacman -S pipewire pipewire-alsa pipewire-jack pipewire-pulse gst-plugin-pipewire wireplumber rtkit pavucontrol alsa-utils  --needed --noconfirm
-wget https://github.com/werman/noise-suppression-for-voice/releases/download/v1.10/linux-rnnoise.zip
-unzip linux-rnnoise.zip
-sudo mkdir -p /usr/local/lib/ladspa
-sudo cp linux-rnnoise/ladspa/librnnoise_ladspa.so /usr/local/lib/ladspa/
-sudo rm -rf linux-rnnoise.zip
-sudo rm -rf linux-rnnoise
-sudo chmod 644 /usr/local/lib/ladspa/librnnoise_ladspa.so
-sudo usermod -a -G rtkit $USER
-systemctl --user enable pipewire pipewire-pulse wireplumber
+# Audio (PipeWire + RNNoise)
+AUDIO_PKGS=(
+  pipewire pipewire-alsa pipewire-jack pipewire-pulse
+  wireplumber rtkit pavucontrol alsa-utils
+  gst-plugin-pipewire
+)
 
-git clone https://aur.archlinux.org/yay yay
-cd yay
-makepkg -si
-cd ..
-sudo rm -rf yay
+install_pacman "${AUDIO_PKGS[@]}"
 
-yay -S --needed --noconfirm power-profiles-daemon tlp ryzenadj btop powertop
-sudo systemctl enable --now power-profiles-daemon
+systemctl --user enable --now pipewire pipewire-pulse wireplumber
+sudo usermod -aG rtkit "$USER"
 
-sudo pacman -S ufw --needed --noconfirm
+if [[ ! -f /usr/local/lib/ladspa/librnnoise_ladspa.so ]]; then
+  echo "[*] Installing RNNoise..."
+  wget -q https://github.com/werman/noise-suppression-for-voice/releases/download/v1.10/linux-rnnoise.zip
+  unzip -q linux-rnnoise.zip
+  sudo install -Dm644 \
+    linux-rnnoise/ladspa/librnnoise_ladspa.so \
+    /usr/local/lib/ladspa/librnnoise_ladspa.so
+  rm -rf linux-rnnoise linux-rnnoise.zip
+fi
+
+# yay (AUR helper)
+if ! command -v yay &>/dev/null; then
+  echo "[*] Installing yay..."
+  git clone https://aur.archlinux.org/yay.git
+  (cd yay && makepkg -si --noconfirm)
+  rm -rf yay
+fi
+
+# Power management & monitoring
+yay -S --needed --noconfirm \
+  power-profiles-daemon tlp ryzenadj \
+  powertop btop
+
+enable_service power-profiles-daemon
+
+# Firewall UFW
+install_pacman ufw
+
 sudo ufw reset
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
-# sudo ufw allow ssh
-# sudo ufw limit ssh
-# Allow local network access (optional, adjust subnet if needed)
-# sudo ufw allow from 192.168.0.0/24
-# Allow basic web traffic if needed
-# sudo ufw allow 80/tcp   # HTTP
-# sudo ufw allow 443/tcp  # HTTPS
-# Enable logging for debugging
 sudo ufw logging on
-# Enable UFW
 sudo ufw --force enable
-# Show status
 sudo ufw status verbose
 
-sudo pacman -Sy niri alacritty fuzzel xwayland-satellite xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-gnome  --needed --noconfirm
+# Wayland / Desktop
+DESKTOP_PKGS=(
+  niri alacritty fuzzel
+  xwayland-satellite
+  polkit-kde-agent
+  xdg-desktop-portal
+  xdg-desktop-portal-gtk
+  xdg-desktop-portal-gnome
+)
 
-# yay -S noctalia-shell cliphist cava wlsunset matugen python3 evolution-data-server power-profiles-daemon --needed --noconfirm
-yay -S dms-shell-bin cliphist matugen qt5-multimedia accountsservice
+install_pacman "${DESKTOP_PKGS[@]}"
 
-sudo pacman -S keepassxc qt5-wayland --needed --noconfirm
+yay -S --needed --noconfirm \
+  dms-shell-bin cliphist cava khal matugen \
+  qt5-multimedia accountsservice
 
-sudo pacman -S speech-dispatcher libnotify hunspell-en_US festival espeak-ng --needed --noconfirm
+systemctl --user add-wants niri.service dms
+# systemctl --user edit --full plasma-polkit-agent.service 
+# Then add After=graphical-session.target
 
-sudo pacman -Syu nautilus evince mpv ffmpeg imagemagick gvfs gvfs-afc gvfs-gphoto2 gvfs-mtp gvfs-nfs gvfs-smb gvfs-google gvfs-wsdd ffmpegthumbnailer poppler gdk-pixbuf2 librsvg libgepub libopenraw tumbler gthumb --needed --noconfirm
+# Apps & accessibility
+install_pacman \
+  qt5-wayland \
+  speech-dispatcher libnotify \
+  hunspell-en_US festival espeak-ng
 
-sudo pacman -S adwaita-icon-theme papirus-icon-theme flatpak adw-gtk-theme nwg-look qt6ct --needed --noconfirm
-yay -S zen-browser-bin --needed --noconfirm
+yay -S --needed --noconfirm zen-browser-bin
+
+# File manager & media
+install_pacman \
+  nautilus evince mpv ffmpeg imagemagick \
+  gvfs gvfs-{afc,gphoto2,mtp,nfs,smb,google,wsdd} \
+  ffmpegthumbnailer poppler gdk-pixbuf2 \
+  librsvg libgepub libopenraw tumbler gthumb
+
+# Theming
+install_pacman \
+  adwaita-icon-theme papirus-icon-theme \
+  flatpak adw-gtk-theme nwg-look qt6ct
 
 gsettings set org.gnome.desktop.interface gtk-theme 'adw-gtk3'
-flatpak install org.gtk.Gtk3theme.adw-gtk3-dark
-flatpak install org.gtk.Gtk3theme.adw-gtk3
-
-# firefox onnxruntime 
+flatpak install -y org.gtk.Gtk3theme.adw-gtk3{,-dark}
 
 echo "[*] Setup complete!"
