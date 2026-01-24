@@ -34,7 +34,7 @@ USER_ENV_PKGS=(
 )
 
 SECURITY_PKGS=(
-  sbctl tpm2-tools tpm2-tss keepassxc
+  sbctl tpm2-tools tpm2-tss keepassxc fprintd
   pass pass-otp gnupg
 )
 
@@ -148,7 +148,7 @@ sudo ufw status verbose
 DESKTOP_PKGS=(
   niri alacritty fuzzel
   xwayland-satellite
-  polkit-kde-agent
+  polkit-gnome
   xdg-desktop-portal
   xdg-desktop-portal-gtk
   xdg-desktop-portal-gnome
@@ -157,12 +157,11 @@ DESKTOP_PKGS=(
 install_pacman "${DESKTOP_PKGS[@]}"
 
 yay -S --needed --noconfirm \
-  dms-shell-bin cliphist cava khal matugen \
+  dms-shell-bin dsearch-bin cliphist cava khal matugen \
   qt5-multimedia accountsservice
 
 systemctl --user add-wants niri.service dms
-# systemctl --user edit --full plasma-polkit-agent.service 
-# Then add After=graphical-session.target
+systemctl --user enable --now dsearch
 
 # Apps & accessibility
 install_pacman \
@@ -174,7 +173,7 @@ yay -S --needed --noconfirm zen-browser-bin
 
 # File manager & media
 install_pacman \
-  nautilus evince mpv ffmpeg imagemagick \
+  nautilus udiskie evince mpv ffmpeg imagemagick \
   gvfs gvfs-{afc,gphoto2,mtp,nfs,smb,google,wsdd} \
   ffmpegthumbnailer poppler gdk-pixbuf2 \
   librsvg libgepub libopenraw tumbler gthumb
