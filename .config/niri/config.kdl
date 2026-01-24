@@ -96,6 +96,19 @@ layer-rule {
     block-out-from "screencast"
 }
 
+//workspace "browser"
+//workspace "terminal"
+//workspace "misc"
+
+/-workspace "browser" {
+    open-on-output "Some Company CoolMonitor 1234"
+}
+
+/-window-rule {
+    match at-startup=true app-id=r#"^name$"#
+    open-on-workspace ""
+}
+
 binds {
     Mod+Shift+Slash { show-hotkey-overlay; }
     Mod+Return hotkey-overlay-title="Open a Terminal: alacritty" { spawn "alacritty"; }
@@ -171,6 +184,10 @@ binds {
     Mod+Alt+T     { switch-focus-between-floating-and-tiling; }
     Mod+W         { toggle-column-tabbed-display; }
 
+    Print { screenshot; }
+    Ctrl+Print { screenshot-screen; }
+    Alt+Print { screenshot-window; }
+
     Mod+Escape allow-inhibiting=false { toggle-keyboard-shortcuts-inhibit; }    
     Mod+Alt+E { quit; }
 }
@@ -179,7 +196,6 @@ binds {
 spawn-sh-at-startup "udiskie"
 spawn-sh-at-startup "/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"
 spawn-at-startup "bash" "-c" "wl-paste --watch cliphist store &"
-spawn-sh-at-startup "pkill swayidle; echo '10 minutes' > /tmp/idle-time; $NIRICONF/scripts/swayidle.sh"
 
 environment {
   XDG_CURRENT_DESKTOP "niri"
