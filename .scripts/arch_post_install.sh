@@ -154,7 +154,8 @@ sudo ufw status verbose
 
 sudo pacman -Sy niri alacritty fuzzel xwayland-satellite xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-gnome  --needed --noconfirm
 
-yay -S noctalia-shell-git cliphist cava wlsunset matugen python3 evolution-data-server power-profiles-daemon --needed --noconfirm
+# yay -S noctalia-shell cliphist cava wlsunset matugen python3 evolution-data-server power-profiles-daemon --needed --noconfirm
+yay -S dms-shell-bin cliphist matugen qt5-multimedia accountsservice
 
 sudo pacman -S keepassxc qt5-wayland --needed --noconfirm
 
@@ -162,8 +163,8 @@ sudo pacman -S speech-dispatcher libnotify hunspell-en_US festival espeak-ng --n
 
 sudo pacman -Syu nautilus evince mpv ffmpeg imagemagick gvfs gvfs-afc gvfs-gphoto2 gvfs-mtp gvfs-nfs gvfs-smb gvfs-google gvfs-wsdd ffmpegthumbnailer poppler gdk-pixbuf2 librsvg libgepub libopenraw tumbler gthumb --needed --noconfirm
 
-sudo pacman -S flatpak adw-gtk-theme nwg-look qt6ct --needed --noconfirm
-sudo pacman -S keepassxc --needed --noconfirm
+sudo pacman -S adwaita-icon-theme papirus-icon-theme flatpak adw-gtk-theme nwg-look qt6ct --needed --noconfirm
+yay -S zen-browser-bin --needed --noconfirm
 
 gsettings set org.gnome.desktop.interface gtk-theme 'adw-gtk3'
 flatpak install org.gtk.Gtk3theme.adw-gtk3-dark
