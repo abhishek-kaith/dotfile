@@ -146,7 +146,7 @@ sudo ufw status verbose
 
 # Wayland / Desktop
 DESKTOP_PKGS=(
-  niri alacritty fuzzel
+  niri swayidle alacritty fuzzel
   xwayland-satellite
   polkit-gnome
   xdg-desktop-portal

@@ -1,5 +1,5 @@
 binds {
-    Mod+Alt+L hotkey-overlay-title="Lock Screen" {
+    Mod+Backspace hotkey-overlay-title="Lock Screen" {
         spawn "dms" "ipc" "call" "lock" "lock";
     }
 
@@ -18,5 +18,4 @@ binds {
     Mod+Shift+S hotkey-overlay-title="Toggle Dark/Light Style" { 
         spawn  "dms" "ipc" "call" "theme" "toggle"; 
     }
-
 }
