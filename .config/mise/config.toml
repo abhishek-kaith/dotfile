@@ -5,6 +5,9 @@ bat = "latest"
 zoxide = "latest"
 ripgrep = "latest"
 
+#AI
+claude-code = "latest"
+
 #Language runtimes (global defaults) 
 node = "lts"
 python = "3.12"

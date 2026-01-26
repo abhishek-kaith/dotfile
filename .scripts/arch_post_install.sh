@@ -25,7 +25,7 @@ NETWORK_PKGS=(
 SYSTEM_PKGS=(
   pciutils usbutils binutils lsof
   util-linux e2fsprogs dosfstools
-  exfatprogs ntfs-3g
+  exfatprogs ntfs-3g acpi
 )
 
 USER_ENV_PKGS=(
@@ -166,7 +166,7 @@ systemctl --user enable --now dsearch
 # Apps & accessibility
 install_pacman \
   qt5-wayland \
-  speech-dispatcher libnotify \
+   galculator speech-dispatcher libnotify \
   hunspell-en_US festival espeak-ng
 
 yay -S --needed --noconfirm zen-browser-bin
@@ -181,7 +181,7 @@ install_pacman \
 # Theming
 install_pacman \
   adwaita-icon-theme papirus-icon-theme \
-  flatpak adw-gtk-theme nwg-look qt6ct
+  flatpak adw-gtk-theme nwg-look qt6ct qt5ct
 
 gsettings set org.gnome.desktop.interface gtk-theme 'adw-gtk3'
 flatpak install -y org.gtk.Gtk3theme.adw-gtk3{,-dark}

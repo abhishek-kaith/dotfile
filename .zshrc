@@ -79,7 +79,6 @@ eval "$(mise activate zsh)"
 eval "$(zoxide init --cmd cd zsh)"
 eval "$(fzf --zsh)"
 
-
 export EDITOR=nvim
 
 # Dotfiles Notes: 

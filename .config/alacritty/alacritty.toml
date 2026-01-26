@@ -27,3 +27,9 @@ save_to_clipboard = true
 key = "Space"
 mods = "Control|Shift"
 action = "ToggleViMode"
+
+[[keyboard.bindings]]
+key = "Return"
+mods = "Shift"
+chars = "\u001b"
+
