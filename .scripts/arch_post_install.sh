@@ -140,6 +140,13 @@ install_pacman ufw
 sudo ufw reset
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
+# syncthing
+sudo ufw allow 22000/tcp       # Sync port
+sudo ufw allow 21027/udp       # Local discovery
+# kdeconnect
+sudo ufw allow 1714:1764/udp
+sudo ufw allow 1714:1764/tcp
+
 sudo ufw logging on
 sudo ufw --force enable
 sudo ufw status verbose
@@ -166,7 +173,7 @@ systemctl --user enable --now dsearch
 # Apps & accessibility
 install_pacman \
   qt5-wayland \
-   galculator speech-dispatcher libnotify \
+  syncthing galculator speech-dispatcher libnotify \
   hunspell-en_US festival espeak-ng
 
 yay -S --needed --noconfirm zen-browser-bin
