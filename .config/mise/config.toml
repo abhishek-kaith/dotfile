@@ -16,9 +16,16 @@ rust = "stable"
 
 #Package managers 
 pnpm = "latest"
+yarn = "latest"
+bun = "latest"
 
 #Programs
 neovim = "latest"
+
+#npm
+"npm:@shopify/cli" = "latest"
+"npm:dotenv-cli" = "latest"
+"npm:tsx" = "latest"
 
 [settings]
 # Automatically install tools when entering a directory
