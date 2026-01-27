@@ -19,7 +19,7 @@ BASE_PKGS=(
 NETWORK_PKGS=(
   iputils bind-tools whois
   openssh wget curl
-  networkmanager
+  networkmanager bluez bluez-utils
 )
 
 SYSTEM_PKGS=(
@@ -62,40 +62,11 @@ install_pacman \
   "${FONT_PKGS[@]}"
 
 enable_service NetworkManager
+enable_service bluetooth
 
 # User directories & fonts
 xdg-user-dirs-update
 fc-cache -fv
-
-# Mise
-MISE_BIN="$HOME/.local/bin/mise"
-
-if [[ ! -x "$MISE_BIN" ]]; then
-  echo "[*] Installing mise..."
-  mkdir -p "$HOME/.local/bin"
-  curl -fsSL https://mise.jdx.dev/install.sh | sh -s -- --no-modify-path --no-activate
-else
-  echo "[*] Mise already installed."
-fi
-
-# Dotfiles (bare repo)
-DOTFILE_REPO="$HOME/.cfg"
-GIT_REPO="https://github.com/abhishek-kaith/dotfile"
-
-if [[ ! -d "$DOTFILE_REPO" ]]; then
-  echo "[*] Cloning dotfiles..."
-  git clone --bare "$GIT_REPO" "$DOTFILE_REPO"
-  git --git-dir="$DOTFILE_REPO" --work-tree="$HOME" checkout
-  git --git-dir="$DOTFILE_REPO" --work-tree="$HOME" config --local status.showUntrackedFiles no
-else
-  echo "[*] Dotfiles already present."
-fi
-
-# Mise tools
-MISE_CONFIG="$HOME/.config/mise/config.toml"
-if [[ -f "$MISE_CONFIG" ]]; then
-  "$MISE_BIN" install
-fi
 
 # Audio (PipeWire + RNNoise)
 AUDIO_PKGS=(
@@ -134,23 +105,6 @@ yay -S --needed --noconfirm \
 
 enable_service power-profiles-daemon
 
-# Firewall UFW
-install_pacman ufw
-
-sudo ufw reset
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-# syncthing
-sudo ufw allow 22000/tcp       # Sync port
-sudo ufw allow 21027/udp       # Local discovery
-# kdeconnect
-sudo ufw allow 1714:1764/udp
-sudo ufw allow 1714:1764/tcp
-
-sudo ufw logging on
-sudo ufw --force enable
-sudo ufw status verbose
-
 # Wayland / Desktop
 DESKTOP_PKGS=(
   niri swayidle alacritty fuzzel
@@ -164,11 +118,10 @@ DESKTOP_PKGS=(
 install_pacman "${DESKTOP_PKGS[@]}"
 
 yay -S --needed --noconfirm \
-  dms-shell-bin dsearch-bin cliphist cava khal matugen \
+  dms-shell-bin cliphist cava khal matugen \
   qt5-multimedia accountsservice
 
 systemctl --user add-wants niri.service dms
-systemctl --user enable --now dsearch
 
 # Apps & accessibility
 install_pacman \
@@ -193,4 +146,55 @@ install_pacman \
 gsettings set org.gnome.desktop.interface gtk-theme 'adw-gtk3'
 flatpak install -y org.gtk.Gtk3theme.adw-gtk3{,-dark}
 
+# Firewall UFW
+install_pacman ufw
+
+sudo ufw reset
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+
+#syncthing
+sudo ufw allow syncthing
+sudo ufw logging on
+
+sudo ufw enable
+sudo ufw status verbose
+
+sudo systemctl enable --now "syncthing@$USER"
+
+# Mise
+MISE_BIN="$HOME/.local/bin/mise"
+
+if [[ ! -x "$MISE_BIN" ]]; then
+  echo "[*] Installing mise..."
+  mkdir -p "$HOME/.local/bin"
+  curl -fsSL https://mise.jdx.dev/install.sh | sh -s -- --no-modify-path --no-activate
+else
+  echo "[*] Mise already installed."
+fi
+
+# Dotfiles (bare repo)
+DOTFILE_REPO="$HOME/.cfg"
+GIT_REPO="https://github.com/abhishek-kaith/dotfile"
+
+if [[ ! -d "$DOTFILE_REPO" ]]; then
+  echo "[*] Cloning dotfiles..."
+  git clone --bare "$GIT_REPO" "$DOTFILE_REPO"
+  git --git-dir="$DOTFILE_REPO" --work-tree="$HOME" checkout
+  git --git-dir="$DOTFILE_REPO" --work-tree="$HOME" config --local status.showUntrackedFiles no
+else
+  echo "[*] Dotfiles already present."
+fi
+
+mkdir $HOME/Projects
+mkdir $HOME/Projects/work
+mkdir $HOME/Projects/personal
+
+# Mise tools
+MISE_CONFIG="$HOME/.config/mise/config.toml"
+if [[ -f "$MISE_CONFIG" ]]; then
+  "$MISE_BIN" install
+fi
+
+# sudo pacman -S kdenlive recordmydesktop qt6-imageformats bigsh0t kimageformats opencv noise-suppression-for-voice python-openai-whisper
 echo "[*] Setup complete!"

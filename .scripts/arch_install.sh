@@ -169,6 +169,7 @@ BASE_PACKAGES=(
     sbctl
     openssh
     git
+    zsh
 )
 
 [[ -n "$MICROCODE" ]] && BASE_PACKAGES+=("$MICROCODE")
@@ -266,8 +267,14 @@ arch-chroot /mnt sbctl create-keys || true
 chattr -i /sys/firmware/efi/efivars/* 2>/dev/null || true
 arch-chroot /mnt sbctl enroll-keys --microsoft || true
 
-arch-chroot /mnt sbctl sign-all
+arch-chroot /mnt sbctl sign -s /efi/EFI/BOOT/BOOTX64.EFI
+arch-chroot /mnt sbctl sign -s /efi/EFI/Linux/arch-linux-zen-fallback.efi
+arch-chroot /mnt sbctl sign -s /efi/EFI/Linux/arch-linux-zen.efi
+arch-chroot /mnt sbctl sign -s /efi/EFI/systemd/systemd-bootx64.efi
 arch-chroot /mnt sbctl verify
+
+# edit sudoers file
+arch-chroot /mnt EDITOR=nvim visudo
 
 echo "Next steps:"
 echo "1. Exit and unmount"
