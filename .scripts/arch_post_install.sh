@@ -100,7 +100,7 @@ fi
 
 # Power management & monitoring
 yay -S --needed --noconfirm \
-  power-profiles-daemon tlp ryzenadj \
+  power-profiles-daemon ryzenadj \
   powertop btop
 
 enable_service power-profiles-daemon

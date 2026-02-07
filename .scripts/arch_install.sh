@@ -170,6 +170,8 @@ BASE_PACKAGES=(
     openssh
     git
     zsh
+    fzf
+    ripgrep
 )
 
 [[ -n "$MICROCODE" ]] && BASE_PACKAGES+=("$MICROCODE")

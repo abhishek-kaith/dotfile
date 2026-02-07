@@ -46,6 +46,32 @@ vim.o.completeopt = "menuone,noselect" -- Better completion experience
 vim.o.updatetime = 250 -- Faster CursorHold, LSP updates, etc.
 vim.o.timeoutlen = 300 -- Timeout for mapped sequence
 
+-- Relative to :pwd
+vim.api.nvim_create_user_command("CopyRFP", function()
+	vim.fn.setreg("+", vim.fn.expand("%:."))
+end, {})
+
+vim.api.nvim_create_user_command("CopyRDP", function()
+	vim.fn.setreg("+", vim.fn.expand("%:.:h"))
+end, {})
+
+vim.api.nvim_create_user_command("CopyRCWD", function()
+	vim.fn.setreg("+", ".")
+end, {})
+
+-- Absolute paths
+vim.api.nvim_create_user_command("CopyFP", function()
+	vim.fn.setreg("+", vim.fn.expand("%:p"))
+end, {})
+
+vim.api.nvim_create_user_command("CopyFDP", function()
+	vim.fn.setreg("+", vim.fn.expand("%:p:h"))
+end, {})
+
+vim.api.nvim_create_user_command("CopyCWD", function()
+	vim.fn.setreg("+", vim.loop.cwd())
+end, {})
+
 -- =========================
 -- Lazy.nvim bootstrap
 -- =========================
@@ -60,23 +86,55 @@ if not vim.loop.fs_stat(lazypath) then
 		lazypath,
 	})
 end
+
 vim.opt.rtp:prepend(lazypath)
 
 require("lazy").setup({
 	{
-		"vague2k/vague.nvim",
+		"folke/tokyonight.nvim",
 		lazy = false,
 		priority = 1000,
 		config = function()
-			vim.cmd.colorscheme("vague")
-			-- transparent-ish UI
-			-- vim.api.nvim_set_hl(0, "Normal", { bg = "NONE" })
-			-- vim.api.nvim_set_hl(0, "NormalFloat", { bg = "NONE" })
-			-- vim.api.nvim_set_hl(0, "SignColumn", { bg = "NONE" })
-			-- vim.api.nvim_set_hl(0, "StatusLine", { bg = "NONE" })
+			local function apply_theme(theme)
+				theme = (theme or ""):gsub("%s+", ""):gsub("'", ""):lower()
+				local is_dark = theme == "" or theme:find("dark")
+				vim.o.background = is_dark and "dark" or "light"
+				vim.cmd.colorscheme(is_dark and "tokyonight-night" or "tokyonight-day")
+
+				vim.api.nvim_set_hl(0, "Normal", { bg = "NONE" })
+				vim.api.nvim_set_hl(0, "NormalFloat", { bg = "NONE" })
+			end
+
+			local function get_system_theme()
+				local h = io.popen("gsettings get org.gnome.desktop.interface color-scheme")
+				local result = h and h:read("*a") or "dark"
+				if h then
+					h:close()
+				end
+				return result
+			end
+
+			apply_theme(get_system_theme())
+
+			vim.api.nvim_create_user_command("SyncSystemTheme", function()
+				apply_theme(get_system_theme())
+			end, {})
+
+			-- File watcher for external theme changes
+			local file = "/tmp/nvim-theme-reload"
+			---@diagnostic disable-next-line: undefined-field
+			local timer, handle = vim.uv.new_timer(), vim.uv.new_fs_event()
+			handle:start(file, {}, function()
+				timer:stop()
+				timer:start(50, 0, function()
+					vim.schedule(function()
+						vim.cmd("hi clear | syntax reset")
+						apply_theme(vim.fn.readfile(file)[1])
+					end)
+				end)
+			end)
 		end,
 	},
-
 	----------------------------------------------------------------------
 	-- NAVIGATION
 	----------------------------------------------------------------------
@@ -134,6 +192,17 @@ require("lazy").setup({
 	----------------------------------------------------------------------
 	-- AUTOCOMPLETE + SNIPPETS
 	----------------------------------------------------------------------
+
+	-- add this to the file where you setup your other plugins:
+	{
+		"monkoose/neocodeium",
+		event = "VeryLazy",
+		config = function()
+			local neocodeium = require("neocodeium")
+			neocodeium.setup()
+			vim.keymap.set("i", "<A-f>", neocodeium.accept)
+		end,
+	},
 	{
 		"Saghen/blink.cmp",
 		version = "v1.6.0",

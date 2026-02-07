@@ -7,6 +7,7 @@ ripgrep = "latest"
 
 #AI
 claude-code = "latest"
+opencode = "latest"
 
 #Language runtimes (global defaults) 
 node = "lts"
@@ -23,9 +24,13 @@ bun = "latest"
 neovim = "latest"
 
 #npm
-"npm:@shopify/cli" = "latest"
-"npm:dotenv-cli" = "latest"
-"npm:tsx" = "latest"
+#"npm:@shopify/cli" = "latest"
+#"npm:dotenv-cli" = "latest"
+#"npm:tsx" = "latest"
+
+#cli tools
+"cloudflared" = "latest"
+"aws-cli" = "latest"
 
 [settings]
 # Automatically install tools when entering a directory
