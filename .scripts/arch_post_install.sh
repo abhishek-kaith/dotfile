@@ -146,20 +146,6 @@ gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita-dark'
 gsettings set org.gnome.desktop.interface font-name 'JetBrains Mono Nerd Font 11'
 gsettings set org.gnome.desktop.interface icon-theme 'Papirus'
 
-# Firewall UFW
-install_pacman ufw
-
-sudo ufw reset
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-
-#syncthing
-sudo ufw allow syncthing
-sudo ufw logging on
-
-sudo ufw enable
-sudo ufw status verbose
-
 sudo systemctl enable --now "syncthing@$USER"
 
 # Mise
@@ -195,6 +181,20 @@ MISE_CONFIG="$HOME/.config/mise/config.toml"
 if [[ -f "$MISE_CONFIG" ]]; then
   "$MISE_BIN" install
 fi
+
+# Firewall UFW
+install_pacman ufw
+
+sudo ufw reset
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+
+#syncthing
+sudo ufw allow syncthing
+sudo ufw logging on
+
+sudo ufw enable
+sudo ufw status verbose
 
 # sudo pacman -S kdenlive recordmydesktop qt6-imageformats bigsh0t kimageformats opencv noise-suppression-for-voice python-openai-whisper
 #yay -S --needed --noconfirm \
