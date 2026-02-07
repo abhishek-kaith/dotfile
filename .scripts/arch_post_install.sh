@@ -117,12 +117,6 @@ DESKTOP_PKGS=(
 
 install_pacman "${DESKTOP_PKGS[@]}"
 
-yay -S --needed --noconfirm \
-  dms-shell-bin cliphist cava khal matugen \
-  qt5-multimedia accountsservice
-
-systemctl --user add-wants niri.service dms
-
 # Apps & accessibility
 install_pacman \
   qt5-wayland \
@@ -143,8 +137,14 @@ install_pacman \
   adwaita-icon-theme papirus-icon-theme \
   flatpak adw-gtk-theme nwg-look qt6ct qt5ct
 
-gsettings set org.gnome.desktop.interface gtk-theme 'adw-gtk3'
 flatpak install -y org.gtk.Gtk3theme.adw-gtk3{,-dark}
+
+gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
+gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita-dark'
+#gsettings set org.gnome.desktop.interface gtk-theme 'adw-gtk3'
+#gsettings set org.gnome.desktop.interface gtk-theme 'adw-gtk3-dark'
+gsettings set org.gnome.desktop.interface font-name 'JetBrains Mono Nerd Font 11'
+gsettings set org.gnome.desktop.interface icon-theme 'Papirus'
 
 # Firewall UFW
 install_pacman ufw
@@ -197,4 +197,10 @@ if [[ -f "$MISE_CONFIG" ]]; then
 fi
 
 # sudo pacman -S kdenlive recordmydesktop qt6-imageformats bigsh0t kimageformats opencv noise-suppression-for-voice python-openai-whisper
+#yay -S --needed --noconfirm \
+#  dms-shell-bin cliphist cava khal matugen \
+#  qt5-multimedia accountsservice
+#
+#systemctl --user add-wants niri.service dms
+
 echo "[*] Setup complete!"
