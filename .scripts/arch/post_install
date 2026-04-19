@@ -13,7 +13,7 @@ enable_service() {
 # Base system packages
 BASE_PKGS=(
   base-devel sudo git
-  man tldr tree less which
+  man tldr tree less which mesa libva-mesa-driver libva-utils
 )
 
 NETWORK_PKGS=(
@@ -29,7 +29,7 @@ SYSTEM_PKGS=(
 )
 
 USER_ENV_PKGS=(
-  zsh tmux
+  zsh tmux neovim tree-sitter tree-sitter-cli
   xdg-user-dirs xdg-utils handlr
 )
 
@@ -48,7 +48,7 @@ FONT_PKGS=(
   ttf-dejavu
   noto-fonts noto-fonts-cjk noto-fonts-emoji
   ttf-jetbrains-mono ttf-jetbrains-mono-nerd
-  ttf-font-awesome ttf-nerd-fonts-symbols
+  ttf-font-awesome ttf-nerd-fonts-symbols ttf-material-symbols-variable
 )
 
 echo "[*] Installing base system packages..."
@@ -73,20 +73,20 @@ AUDIO_PKGS=(
   pipewire pipewire-alsa pipewire-jack pipewire-pulse
   wireplumber rtkit pavucontrol alsa-utils
   gst-plugin-pipewire
-)
+) 
 
 install_pacman "${AUDIO_PKGS[@]}"
 
 systemctl --user enable --now pipewire pipewire-pulse wireplumber
 sudo usermod -aG rtkit "$USER"
 
-if [[ ! -f /usr/local/lib/ladspa/librnnoise_ladspa.so ]]; then
+if [[ ! -f /usr/lib/ladspa/librnnoise_ladspa.so ]]; then
   echo "[*] Installing RNNoise..."
   wget -q https://github.com/werman/noise-suppression-for-voice/releases/download/v1.10/linux-rnnoise.zip
   unzip -q linux-rnnoise.zip
   sudo install -Dm644 \
     linux-rnnoise/ladspa/librnnoise_ladspa.so \
-    /usr/local/lib/ladspa/librnnoise_ladspa.so
+    /usr/lib/ladspa/librnnoise_ladspa.so
   rm -rf linux-rnnoise linux-rnnoise.zip
 fi
 
@@ -107,8 +107,9 @@ enable_service power-profiles-daemon
 
 # Wayland / Desktop
 DESKTOP_PKGS=(
-  niri swayidle alacritty fuzzel
-  xwayland-satellite
+  niri swayidle swaylock swaybg rofi mako alacritty lazygit fuzzel
+  xwayland-satellite cliphist
+  rofi-wayland wl-clipboard
   polkit-gnome
   xdg-desktop-portal
   xdg-desktop-portal-gtk
@@ -135,16 +136,12 @@ install_pacman \
 # Theming
 install_pacman \
   adwaita-icon-theme papirus-icon-theme \
-  flatpak adw-gtk-theme nwg-look qt6ct qt5ct
+  flatpak adw-gtk-theme nwg-look qt6ct qt5ct gnome-themes-extra xdg-desktop-portal-gtk matugen
 
 flatpak install -y org.gtk.Gtk3theme.adw-gtk3{,-dark}
 
-gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
-gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita-dark'
-#gsettings set org.gnome.desktop.interface gtk-theme 'adw-gtk3'
-#gsettings set org.gnome.desktop.interface gtk-theme 'adw-gtk3-dark'
-gsettings set org.gnome.desktop.interface font-name 'JetBrains Mono Nerd Font 11'
-gsettings set org.gnome.desktop.interface icon-theme 'Papirus'
+# PDF
+flatpak install -y app/com.github.ahrm.sioyek/x86_64/stable
 
 sudo systemctl enable --now "syncthing@$USER"
 
@@ -172,9 +169,7 @@ else
   echo "[*] Dotfiles already present."
 fi
 
-mkdir $HOME/Projects
-mkdir $HOME/Projects/work
-mkdir $HOME/Projects/personal
+mkdir -p $HOME/Projects/{personal,work}
 
 # Mise tools
 MISE_CONFIG="$HOME/.config/mise/config.toml"
@@ -183,24 +178,17 @@ if [[ -f "$MISE_CONFIG" ]]; then
 fi
 
 # Firewall UFW
-install_pacman ufw
+install_pacman ufw ufw-extras gufw
 
-sudo ufw reset
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-
+#sudo ufw reset
+#sudo ufw default deny incoming
+#sudo ufw default allow outgoing
+#
 #syncthing
-sudo ufw allow syncthing
-sudo ufw logging on
+#sudo ufw allow syncthing
+#sudo ufw logging on
 
 sudo ufw enable
 sudo ufw status verbose
-
-# sudo pacman -S kdenlive recordmydesktop qt6-imageformats bigsh0t kimageformats opencv noise-suppression-for-voice python-openai-whisper
-#yay -S --needed --noconfirm \
-#  dms-shell-bin cliphist cava khal matugen \
-#  qt5-multimedia accountsservice
-#
-#systemctl --user add-wants niri.service dms
 
 echo "[*] Setup complete!"

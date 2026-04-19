@@ -234,39 +234,157 @@ require("lazy").setup({
 			})
 		end,
 	},
+	{ -- Highlight, edit, and navigate code
+		"nvim-treesitter/nvim-treesitter",
+		lazy = false,
+		build = ":TSUpdate",
+		branch = "main",
+		-- [[ Configure Treesitter ]] See `:help nvim-treesitter-intro`
+		config = function()
+			local parsers = {
+				"bash",
+				"c",
+				"diff",
+				"html",
+				"lua",
+				"luadoc",
+				"markdown",
+				"markdown_inline",
+				"query",
+				"vim",
+				"vimdoc",
+				"typescript",
+				"javascript",
+				"css",
+				"elixir",
+				"json",
+				"rust",
+				"toml",
+				"yaml",
+				"tsx",
+			}
+			require("nvim-treesitter").install(parsers)
+			vim.api.nvim_create_autocmd("FileType", {
+				callback = function(args)
+					local buf, filetype = args.buf, args.match
+
+					local language = vim.treesitter.language.get_lang(filetype)
+					if not language then
+						return
+					end
+
+					-- check if parser exists and load it
+					if not vim.treesitter.language.add(language) then
+						return
+					end
+					-- enables syntax highlighting and other treesitter features
+					vim.treesitter.start(buf, language)
+
+					-- enables treesitter based folds
+					-- for more info on folds see `:help folds`
+					-- vim.wo.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
+					-- vim.wo.foldmethod = 'expr'
+
+					-- enables treesitter based indentation
+					vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+				end,
+			})
+		end,
+	},
 
 	----------------------------------------------------------------------
 	-- TREESITTER
 	----------------------------------------------------------------------
-	{
+	{ -- Highlight, edit, and navigate code
 		"nvim-treesitter/nvim-treesitter",
-		opts = function(_, opts)
-			opts.auto_install = true
-
-			opts.highlight = opts.highlight or {}
-			opts.highlight.enable = true
-			opts.highlight.disable = function(_, buf)
-				local max_filesize = 100 * 1024 -- 100 KB
-				local ok, stats = pcall(vim.loop.fs_stat, vim.api.nvim_buf_get_name(buf))
-				return ok and stats and stats.size > max_filesize
-			end
-
-			opts.incremental_selection = {
-				enable = true,
-				keymaps = {
-					init_selection = "<C-space>",
-					node_incremental = "<C-space>",
-					node_decremental = "<bs>",
-				},
+		lazy = false,
+		build = ":TSUpdate",
+		branch = "main",
+		-- [[ Configure Treesitter ]] See `:help nvim-treesitter-intro`
+		config = function()
+			local parsers = {
+				"bash",
+				"c",
+				"diff",
+				"html",
+				"lua",
+				"luadoc",
+				"markdown",
+				"markdown_inline",
+				"query",
+				"vim",
+				"vimdoc",
+				"typescript",
+				"javascript",
+				"css",
+				"elixir",
+				"json",
+				"rust",
+				"toml",
+				"yaml",
 			}
+			require("nvim-treesitter").install(parsers)
+			vim.api.nvim_create_autocmd("FileType", {
+				callback = function(args)
+					local buf, filetype = args.buf, args.match
+
+					local language = vim.treesitter.language.get_lang(filetype)
+					if not language then
+						return
+					end
+
+					-- check if parser exists and load it
+					if not vim.treesitter.language.add(language) then
+						return
+					end
+					-- enables syntax highlighting and other treesitter features
+					vim.treesitter.start(buf, language)
+
+					-- enables treesitter based folds
+					-- for more info on folds see `:help folds`
+					-- vim.wo.foldexpr = 'v:lua.vim.treesitter.foldexpr()'
+					-- vim.wo.foldmethod = 'expr'
+
+					-- enables treesitter based indentation
+					vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+				end,
+			})
 		end,
 	},
+	--opts.incremental_selection = {
+	--  enable = true,
+	--  keymaps = {
+	--    init_selection = "<C-space>",
+	--    node_incremental = "<C-space>",
+	--    node_decremental = "<bs>",
+	--  },
+	--}
 	----------------------------------------------------------------------
 	-- GIT
 	----------------------------------------------------------------------
 	{
 		"lewis6991/gitsigns.nvim",
 		config = true,
+	},
+	{
+		"kdheepak/lazygit.nvim",
+		lazy = true,
+		cmd = {
+			"LazyGit",
+			"LazyGitConfig",
+			"LazyGitCurrentFile",
+			"LazyGitFilter",
+			"LazyGitFilterCurrentFile",
+		},
+		-- optional for floating window border decoration
+		dependencies = {
+			"nvim-lua/plenary.nvim",
+		},
+		-- setting the keybinding for LazyGit with 'keys' is recommended in
+		-- order to load the plugin when the command is run for the first time
+		keys = {
+			{ "<leader>lg", "<cmd>LazyGit<cr>", desc = "LazyGit" },
+		},
 	},
 })
 

@@ -1,9 +1,8 @@
 [general]
-#import = []
+import = ["./colors.toml"]
 
 [window]
-opacity = 0.9
-decorations = "None"
+opacity = 0.85
 
 [window.padding]
 x = 5
@@ -32,4 +31,3 @@ action = "ToggleViMode"
 key = "Return"
 mods = "Shift"
 chars = "\u001b"
-

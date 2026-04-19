@@ -1,0 +1,109 @@
+#!/bin/bash
+# Usage: ./theme.sh dark | light | toggle | status
+
+MODE="$1"
+
+case "$MODE" in
+    install)
+      sudo pacman -S adw-gtk-theme nwg-look qt6ct qt5ct gnome-themes-extra xdg-desktop-portal-gtk
+      if command -v flatpak &>/dev/null; then
+        flatpak install -y org.gtk.Gtk3theme.adw-gtk3{,-dark}
+      fi
+      echo "Set these environment variables:"
+      echo "export QT_QPA_PLATFORMTHEME=qt5ct"
+      echo "export QT_QPA_PLATFORMTHEME=qt6ct"
+      exit 0
+      ;;
+
+    status)
+        echo "GTK theme:    $(gsettings get org.gnome.desktop.interface gtk-theme 2>/dev/null)"
+        echo "Color scheme: $(gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null)"
+        echo "FDO portal:   $(dconf read /org/freedesktop/appearance/color-scheme 2>/dev/null || echo 'not set')"
+        echo "KDE colors:   $(grep ColorScheme ~/.config/kdeglobals 2>/dev/null || echo 'not set')"
+        if command -v flatpak &>/dev/null; then
+            echo "Flatpak GTK:  $(flatpak override --user --show 2>/dev/null | grep GTK_THEME || echo 'not set')"
+        fi
+        exit 0
+        ;;
+
+    toggle)
+        CURRENT=$(gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null)
+        [ "$CURRENT" = "'prefer-dark'" ] && MODE="light" || MODE="dark"
+        ;;
+
+    dark) ;;
+
+    light) ;;
+
+    *)
+        echo "Usage: $(basename "$0") <command>"
+        echo ""
+        echo "  dark      Switch to dark theme"
+        echo "  light     Switch to light theme"
+        echo "  toggle    Toggle dark/light"
+        echo "  status    Show current theme"
+        echo "  install   Install required packages"
+        exit 1
+        ;;
+esac
+
+WALLPAPER="$(readlink -f ~/Pictures/Wallpapers/current)"
+
+if [ "$MODE" = "dark" ]; then
+    GTK="adw-gtk3-dark"
+    SCHEME="prefer-dark"
+    PREFER=true
+    KDE_COLOR="BreezeDark"
+else
+    GTK="adw-gtk3"
+    SCHEME="prefer-light"
+    PREFER=false
+    KDE_COLOR="BreezeLight"
+fi
+
+# === REGENERATE MATUGEN COLORS ===
+matugen image "$WALLPAPER" -m "$MODE" --source-color-index 0
+
+echo "$MODE" > /tmp/nvim-theme-reload
+
+# === GTK 3/4 via gsettings ===
+# gsettings drives the GNOME portal which notifies apps (Firefox, Nautilus, etc.)
+# Do NOT write directly to dconf /org/freedesktop/appearance/color-scheme
+# — the GNOME portal owns that key and a direct write conflicts with it
+gsettings set org.gnome.desktop.interface color-scheme "$SCHEME"
+gsettings set org.gnome.desktop.interface gtk-theme "$GTK"
+
+# GTK 3 config file
+mkdir -p ~/.config/gtk-3.0
+cat > ~/.config/gtk-3.0/settings.ini <<EOF
+[Settings]
+gtk-theme-name=$GTK
+gtk-application-prefer-dark-theme=$PREFER
+EOF
+
+# GTK 4 config file
+mkdir -p ~/.config/gtk-4.0
+cat > ~/.config/gtk-4.0/settings.ini <<EOF
+[Settings]
+gtk-application-prefer-dark-theme=$PREFER
+EOF
+
+# === KDE/Qt apps ===
+mkdir -p ~/.config
+KDE_PACKAGE="org.kde.breeze.desktop"
+[ "$MODE" = "dark" ] && KDE_PACKAGE="org.kde.breezedark.desktop"
+cat > ~/.config/kdeglobals <<EOF
+[General]
+ColorScheme=$KDE_COLOR
+
+[KDE]
+LookAndFeelPackage=$KDE_PACKAGE
+EOF
+
+
+# === Flatpak ===
+if command -v flatpak &>/dev/null; then
+    flatpak override --user --env=GTK_THEME="$GTK" 2>/dev/null
+fi
+
+echo "Switched to $MODE"

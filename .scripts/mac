@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if [[ $EUID -ne 0 ]]; then
+    echo "Run with sudo"
+    exit 1
+fi
+
+command -v fzf >/dev/null || { echo "fzf not installed"; exit 1; }
+command -v nmcli >/dev/null || { echo "NetworkManager not installed"; exit 1; }
+
+INTERFACE=$(nmcli -t -f DEVICE,TYPE device | awk -F: '$2=="wifi"{print $1; exit}')
+
+if [[ -z "$INTERFACE" ]]; then
+    echo "No WiFi interface found"
+    exit 1
+fi
+
+echo "Using interface: $INTERFACE"
+
+MAC_ADDRESSES=(
+"DC:4A:3E:68:C5:6E"
+"B8:94:E7:12:5A:13"
+"94:E2:3C:1D:17:D5"
+"34:F0:43:1F:A3:20"
+"14:D4:24:A2:D8:1F"
+"AC:C0:48:07:34:D5"
+"7C:F0:E5:2E:9D:7D"
+"E4:8C:73:93:72:2D"
+"D8:80:83:C3:85:BF"
+"10:EC:81:C2:80:40"
+"9C:93:4E:41:6B:13"
+"9C:5F:5A:E0:02:4D"
+"AC:50:DE:E3:50:51"
+)
+
+SELECTED_MAC=$(printf "%s\n" "${MAC_ADDRESSES[@]}" | fzf --prompt="Select MAC: ")
+
+[[ -z "$SELECTED_MAC" ]] && { echo "No MAC selected"; exit 1; }
+
+echo "Selected MAC: $SELECTED_MAC"
+
+echo "Scanning networks..."
+
+SSID=$(nmcli -t -f SSID,SIGNAL,SECURITY device wifi list ifname "$INTERFACE" \
+| awk -F: '!seen[$1]++ && $1!=""' \
+| fzf --prompt="Select WiFi: " \
+| cut -d: -f1)
+
+[[ -z "$SSID" ]] && { echo "No network selected"; exit 1; }
+
+read -rsp "Password for $SSID: " PASSWORD
+echo
+
+echo "Disconnecting interface..."
+nmcli device disconnect "$INTERFACE" >/dev/null 2>&1 || true
+
+echo "Stopping NetworkManager control..."
+nmcli device set "$INTERFACE" managed no
+
+echo "Changing MAC..."
+
+ip link set "$INTERFACE" down
+ip link set "$INTERFACE" address "$SELECTED_MAC"
+ip link set "$INTERFACE" up
+
+echo "Restoring NetworkManager control..."
+nmcli device set "$INTERFACE" managed yes
+
+sleep 2
+
+echo "Rescanning networks..."
+nmcli device wifi rescan ifname "$INTERFACE"
+sleep 3
+
+echo "Connecting to $SSID..."
+nmcli device wifi connect "$SSID" password "$PASSWORD" ifname "$INTERFACE"
+
+echo "Connected successfully."

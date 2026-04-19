@@ -79,10 +79,9 @@ eval "$(fzf --zsh)"
 bindkey -v
 bindkey '^p' history-search-backward
 bindkey '^n' history-search-forward
-bindkey -s '^f' '~/.scripts/tmux-sessionizer.sh\n'
+bindkey -s '^f' '~/.scripts/tmux-sessionizer\n'
 
 export EDITOR=nvim
-
 # Dotfiles Notes: 
 # git init --bare $HOME/.cfg
 # alias config='/usr/bin/git --git-dir=$HOME/.cfg/ --work-tree=$HOME'

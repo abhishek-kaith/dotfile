@@ -1,0 +1,25 @@
+#!/bin/bash
+WALLPAPER_DIR="$HOME/Pictures/Wallpapers"
+SYMLINK_PATH="$HOME/Pictures/Wallpapers/current"
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+
+cd "$WALLPAPER_DIR" || exit 1
+
+# === handle spaces in names
+IFS=$'\n'
+
+# === ICON-PREVIEW SELECTION WITH ROFI, SORTED BY NEWEST ===
+SELECTED_WALL=$(for a in $(ls -t *.jpg *.png *.gif *.jpeg 2>/dev/null); do echo -en "$a\0icon\x1f$a\n"; done | rofi -dmenu -p "")
+[ -z "$SELECTED_WALL" ] && exit 1
+SELECTED_PATH="$WALLPAPER_DIR/$SELECTED_WALL"
+
+# === CREATE SYMLINK (before theme script reads it) ===
+mkdir -p "$(dirname "$SYMLINK_PATH")"
+ln -sf "$SELECTED_PATH" "$SYMLINK_PATH"
+
+# === APPLY THEME (regenerates matugen colors + updates all settings) ===
+MODE="light"
+if [ "$(gsettings get org.gnome.desktop.interface color-scheme)" = "'prefer-dark'" ]; then
+  MODE="dark"
+fi
+"$SCRIPT_DIR/theme" "$MODE"

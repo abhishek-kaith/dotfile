@@ -4,15 +4,18 @@ fzf = "latest"
 bat = "latest"
 zoxide = "latest"
 ripgrep = "latest"
+pipx = "latest"
+"aqua:go-task/task" = "latest"
 
 #AI
 claude-code = "latest"
-opencode = "latest"
+codex = "latest"
+"pipx:graphifyy" = "latest"
+# "npm:freebuff" = "latest"
 
 #Language runtimes (global defaults) 
 node = "lts"
-python = "3.12"
-go = "1.22"
+go = "1.26"
 rust = "stable"
 
 #Package managers 
@@ -21,12 +24,14 @@ yarn = "latest"
 bun = "latest"
 
 #Programs
-neovim = "latest"
+#neovim = "latest"
 
 #npm
-#"npm:@shopify/cli" = "latest"
-#"npm:dotenv-cli" = "latest"
-#"npm:tsx" = "latest"
+"npm:@shopify/cli" = "latest"
+"npm:dotenv-cli" = "latest"
+"npm:tsx" = "latest"
+"npm:playwright" = "latest"
+
 
 #cli tools
 "cloudflared" = "latest"
